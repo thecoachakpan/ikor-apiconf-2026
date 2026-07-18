@@ -1,4 +1,4 @@
-# Ikor (Sayikor) — Context-Aware Voice & MCP Overlay
+# Ikor — Agentic Voice-to-MCP Payment Infrastructure
 
 Ikor is an intelligent, windowless speech-to-text overlay that lets you type anywhere on your screen using your voice, apply app-aware AI formatting (ScribePro), and execute financial operations via spoken commands (Voice to MCP) integrated with the **Monnify Sandbox API**.
 
