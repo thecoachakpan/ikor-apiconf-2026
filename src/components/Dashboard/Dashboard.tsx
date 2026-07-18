@@ -2498,9 +2498,8 @@ export default function Dashboard(_props: DashboardProps) {
                               String(now.getMinutes()).padStart(2, "0") + " " + 
                               (now.getHours() >= 12 ? "PM" : "AM");
 
-              const isNgn = (priceString || "").includes("₦");
               const creditCardNum = Math.floor(1000 + Math.random() * 9000);
-              const methodStr = isNgn ? `Paystack Mastercard ending in ${creditCardNum}` : `Stripe Credit Card ending in ${creditCardNum}`;
+              const methodStr = `Monnify Card ending in ${creditCardNum}`;
               
               const isPlusOrPro = upgradedPlanName === "Ikor Plus" || upgradedPlanName === "Ikor Pro";
               const description = isPlusOrPro 
@@ -2512,7 +2511,7 @@ export default function Dashboard(_props: DashboardProps) {
                 date: dateStr,
                 description: description,
                 words: `+${wordsAdded.toLocaleString()} words`,
-                amount: priceString || (isNgn ? "₦1,500.00" : "$1.50"),
+                amount: priceString || "₦1,500.00",
                 status: "Successful",
                 method: methodStr
               };
@@ -2574,16 +2573,15 @@ export default function Dashboard(_props: DashboardProps) {
                               String(now.getMinutes()).padStart(2, "0") + " " + 
                               (now.getHours() >= 12 ? "PM" : "AM");
 
-              const isNgn = (priceString || "").includes("₦");
               const creditCardNum = Math.floor(1000 + Math.random() * 9000);
-              const methodStr = isNgn ? `Paystack Mastercard ending in ${creditCardNum}` : `Stripe Credit Card ending in ${creditCardNum}`;
+              const methodStr = `Monnify Card ending in ${creditCardNum}`;
 
               const newTxn = {
                 id: txnId,
                 date: dateStr,
                 description: `Ikor ${plan === "Ikor Pro" ? "Pro" : "Plus"} Monthly Subscription Upgrade`,
                 words: `+${wordsVal.toLocaleString()} words`,
-                amount: priceString || (isNgn ? "₦3,000.00" : "$3.00"),
+                amount: priceString || "₦3,000.00",
                 status: "Successful",
                 method: methodStr
               };

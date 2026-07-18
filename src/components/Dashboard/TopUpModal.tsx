@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Check, Sparkles, RefreshCw } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import PaystackPop from "@paystack/inline-js";
 
 import { openUrl } from "@tauri-apps/plugin-opener";
 
@@ -24,7 +23,7 @@ export default function TopUpModal({
   isOpen, 
   onClose, 
   email,
-  currency, 
+  currency: _currency, 
   isActualPro, 
   currentPlanName,
   selectedProInSettings,
@@ -34,10 +33,7 @@ export default function TopUpModal({
 }: TopUpModalProps) {
   const [amount, setAmount] = useState<string>("");
   const [upgradeChoice, setUpgradeChoice] = useState<"none" | "Plus" | "Pro">("none");
-  const [activeCurrency, setActiveCurrency] = useState<'NGN' | 'USD'>(currency);
-  const [paymentGateway, setPaymentGateway] = useState<"paystack" | "monnify">("paystack");
-
-
+  const activeCurrency = _currency;
 
   // Checkout States
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -77,7 +73,6 @@ export default function TopUpModal({
       setIsSuccessScreen(false);
       setPendingMonnifyRef(null);
       setIsVerifying(false);
-      setPaymentGateway("paystack");
     }
   }, [isOpen, actualPlan, selectedProInSettings, upgradePlan]);
 
@@ -117,30 +112,22 @@ export default function TopUpModal({
   // - Ikor Plus: default ₦50 / $0.05 per 1,000 words. If upgraded to Pro: ₦25 / $0.025.
   // - Free plan: default ₦100 / $0.1 per 1,000 words. If upgraded to Plus: ₦50 / $0.05.
   const activeRate = useMemo(() => {
+    let rate = 0.1;
     if (actualPlan === "Ikor Pro" || actualPlan === "Pro plan") {
-      return activeCurrency === 'NGN' ? 0.025 : 0.000025;
+      rate = 0.025;
+    } else if (actualPlan === "Ikor Plus") {
+      rate = upgradeChoice === "Pro" ? 0.025 : 0.05;
+    } else if (actualPlan === "Free Trial" || actualPlan === "Free") {
+      rate = upgradeChoice === "Pro" ? 0.025 : 0.05;
+    } else {
+      if (upgradeChoice === "Pro") rate = 0.025;
+      else if (upgradeChoice === "Plus") rate = 0.05;
     }
-    if (actualPlan === "Ikor Plus") {
-      if (upgradeChoice === "Pro") {
-        return activeCurrency === 'NGN' ? 0.025 : 0.000025;
-      }
-      return activeCurrency === 'NGN' ? 0.05 : 0.00005;
+    
+    if (activeCurrency === 'USD') {
+      rate = rate / 1000;
     }
-    // Free plan / Free Trial (starts with Ikor Plus rate: ₦50 / $0.05 per 1,000 words)
-    if (actualPlan === "Free Trial" || actualPlan === "Free") {
-      if (upgradeChoice === "Pro") {
-        return activeCurrency === 'NGN' ? 0.025 : 0.000025;
-      }
-      return activeCurrency === 'NGN' ? 0.05 : 0.00005;
-    }
-    // General fallback Free Plan
-    if (upgradeChoice === "Pro") {
-      return activeCurrency === 'NGN' ? 0.025 : 0.000025;
-    }
-    if (upgradeChoice === "Plus") {
-      return activeCurrency === 'NGN' ? 0.05 : 0.00005;
-    }
-    return activeCurrency === 'NGN' ? 0.1 : 0.0001;
+    return rate;
   }, [actualPlan, upgradeChoice, activeCurrency]);
 
   const baseWordsCost = parsedAmount * activeRate;
@@ -158,11 +145,11 @@ export default function TopUpModal({
 
   const subtotal = wordsCost + flatSubscriptionFee;
 
-  // Calculate Transaction fee: 6% + N150 for NGN; 6% + $0.10 for USD
+  // Calculate Transaction fee: 6% + N150 or 6% + $0.15
   const transactionFee = useMemo(() => {
     if (subtotal <= 0) return 0;
     const feePercent = 0.06;
-    const fixedFee = activeCurrency === 'NGN' ? 150 : 0.10;
+    const fixedFee = activeCurrency === 'NGN' ? 150 : 0.15;
     return (subtotal * feePercent) + fixedFee;
   }, [subtotal, activeCurrency]);
 
@@ -179,102 +166,38 @@ export default function TopUpModal({
 
   const handleProceed = async () => {
     if (!canProceed) return;
-    setIsCheckingOut(true);
-
-    if (activeCurrency === 'NGN' && paymentGateway === "monnify") {
-      try {
-        const reference = "MONNIFY-" + Math.floor(1000000 + Math.random() * 9000000);
-        const { data, error } = await supabase.functions.invoke("initialize-monnify-payment", {
-          body: {
-            amount: totalAmount,
-            customerEmail: email || "user@example.com",
-            customerName: "Ikor User",
-            reference,
-            paymentDescription: "Ikor Word Top-up"
-          }
-        });
-
-        if (error || !data || !data.checkoutUrl) {
-          console.error("Initialize payment error:", error || data);
-          alert(data?.error || "Failed to initialize Monnify payment. Please try again.");
-          setIsCheckingOut(false);
-          return;
-        }
-
-        // Open checkout URL in default system browser
-        await openUrl(data.checkoutUrl);
-        setPendingMonnifyRef(data.transactionReference || reference);
-        setIsCheckingOut(false);
-      } catch (e) {
-        console.error("Monnify Checkout Error:", e);
-        alert("An error occurred starting the Monnify payment. Please try again.");
-        setIsCheckingOut(false);
-      }
+    if (activeCurrency === 'USD') {
+      alert("Stripe Integration (Coming Soon): USD payments are currently in sandbox. Please switch your settings to NGN to complete real payments via Monnify.");
       return;
     }
+    setIsCheckingOut(true);
 
     try {
-      // 1. Fetch public key dynamically from Supabase config Edge Function (with local .env fallback)
-      let paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "";
-      try {
-        const { data, error } = await supabase.functions.invoke("get-paystack-config");
-        if (data && data.publicKey) {
-          paystackKey = data.publicKey;
-        } else if (error) {
-          console.warn("Supabase config function error, using env fallback:", error);
+      const reference = "MONNIFY-" + Math.floor(1000000 + Math.random() * 9000000);
+      const { data, error } = await supabase.functions.invoke("initialize-monnify-payment", {
+        body: {
+          amount: totalAmount,
+          customerEmail: email || "user@example.com",
+          customerName: "Ikor User",
+          reference,
+          paymentDescription: "Ikor Word Top-up"
         }
-      } catch (err) {
-        console.warn("Could not invoke get-paystack-config function, using env fallback:", err);
-      }
+      });
 
-      if (!paystackKey) {
-        alert("Payment configuration missing. Please add VITE_PAYSTACK_PUBLIC_KEY to your environment variables or configure it in Supabase.");
+      if (error || !data || !data.checkoutUrl) {
+        console.error("Initialize payment error:", error || data);
+        alert(data?.error || "Failed to initialize Monnify payment. Please try again.");
         setIsCheckingOut(false);
         return;
       }
 
-      // 2. Initialize Paystack popup
-      const paystack = new PaystackPop();
-      paystack.newTransaction({
-        key: paystackKey,
-        email: email,
-        amount: Math.round(totalAmount * 100), // convert to kobo/cents
-        currency: activeCurrency, // NGN or USD
-        onSuccess: async (transaction: any) => {
-          console.log("Paystack payment successful, reference:", transaction.reference);
-
-          // 3. Call backend verification (fallback to direct trust if endpoint not deployed yet)
-          let verified = false;
-          try {
-            const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
-              body: { reference: transaction.reference }
-            });
-            if (data && data.verified) {
-              verified = true;
-            } else {
-              console.warn("Edge function verification failed:", error || data);
-            }
-          } catch (verifyErr) {
-            console.warn("Failed to contact verification endpoint, falling back to client-side success:", verifyErr);
-            // Fallback for offline/development testing
-            verified = true; 
-          }
-
-          if (verified) {
-            setIsCheckingOut(false);
-            setIsSuccessScreen(true);
-          } else {
-            alert("Payment verification failed. Please contact support.");
-            setIsCheckingOut(false);
-          }
-        },
-        onCancel: () => {
-          console.log("Payment cancelled by user");
-          setIsCheckingOut(false);
-        }
-      });
+      // Open checkout URL in default system browser
+      await openUrl(data.checkoutUrl);
+      setPendingMonnifyRef(data.transactionReference || reference);
+      setIsCheckingOut(false);
     } catch (e) {
-      console.error("Paystack Checkout Error:", e);
+      console.error("Monnify Checkout Error:", e);
+      alert("An error occurred starting the Monnify payment. Please try again.");
       setIsCheckingOut(false);
     }
   };
@@ -462,10 +385,6 @@ export default function TopUpModal({
 
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center bg-gray-100 p-1 rounded-xl">
-                        <button onClick={() => setActiveCurrency('NGN')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${activeCurrency === 'NGN' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>NGN</button>
-                        <button onClick={() => setActiveCurrency('USD')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${activeCurrency === 'USD' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>USD</button>
-                      </div>
                       <div className="relative flex-1">
                         <input 
                           type="number"
@@ -491,10 +410,7 @@ export default function TopUpModal({
                     {(actualPlan === "Free Trial" || actualPlan === "Free") && daysLeft > 0 && (
                       <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-2xl p-4 space-y-2.5 text-left font-sans shadow-sm">
                         <div className="text-xs font-black text-[#166534] tracking-tight">
-                          {activeCurrency === 'NGN' 
-                            ? `${daysLeftStr} left to top-up words at N50 per 1,000 words`
-                            : `${daysLeftStr} left to top-up words at $0.05 per 1,000 words`
-                          }
+                          {daysLeftStr} left to top-up words at {activeCurrency === 'NGN' ? '₦50' : '$0.05'} per 1,000 words
                         </div>
                         
                         {/* Horizontal progress bar matching sample image */}
@@ -513,7 +429,7 @@ export default function TopUpModal({
 
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="px-2 py-1.5 bg-gray-100 text-gray-700 text-[11px] font-bold rounded-lg border border-black/5">
-                        {activeCurrency === 'NGN' ? `₦${(activeRate * 1000).toFixed(0)}` : `$${parseFloat((activeRate * 1000).toFixed(4))}`}/1k words
+                        {activeCurrency === 'NGN' ? '₦' : '$'}{(activeRate * 1000).toFixed(activeCurrency === 'NGN' ? 0 : 2)}/1k words
                       </span>
                       {activeRate === (activeCurrency === 'NGN' ? 0.025 : 0.000025) ? (
                         <span className="px-2 py-1.5 bg-green-500/10 text-green-700 text-[11px] font-bold rounded-lg whitespace-nowrap flex items-center gap-1">
@@ -573,7 +489,7 @@ export default function TopUpModal({
                             title: "No Upgrade", 
                             badge: "Standard", 
                             fee: activeCurrency === 'NGN' ? "₦0" : "$0",
-                            desc: activeCurrency === 'NGN' ? "₦100/1k rate" : "$0.1/1k rate"
+                            desc: activeCurrency === 'NGN' ? "₦100/1k rate" : "$0.10/1k rate"
                           },
                           { 
                             id: "Plus" as const, 
@@ -618,41 +534,6 @@ export default function TopUpModal({
                     </div>
                   )}
 
-                  {/* Payment Gateway Selector for NGN */}
-                  {activeCurrency === 'NGN' && (
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-sans">
-                        Select Payment Method
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentGateway("paystack")}
-                          disabled={isCheckingOut}
-                          className={`flex-1 py-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold text-xs ${
-                            paymentGateway === "paystack"
-                              ? "bg-black border-black text-white shadow-md shadow-black/10 scale-[1.01]"
-                              : "bg-gray-50 border-black/5 text-gray-800 hover:bg-gray-100/75"
-                          }`}
-                        >
-                          Paystack
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPaymentGateway("monnify")}
-                          disabled={isCheckingOut}
-                          className={`flex-1 py-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold text-xs ${
-                            paymentGateway === "monnify"
-                              ? "bg-black border-black text-white shadow-md shadow-black/10 scale-[1.01]"
-                              : "bg-gray-50 border-black/5 text-gray-800 hover:bg-gray-100/75"
-                          }`}
-                        >
-                          Monnify
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Breakdown Summary Box */}
                   <div className="bg-gray-50 p-5 rounded-2xl space-y-3 border border-black/5 font-sans">
                     <div className="flex justify-between text-xs text-gray-500 font-medium">
@@ -666,11 +547,10 @@ export default function TopUpModal({
                       <div className="flex justify-between text-xs text-gray-500 font-medium">
                         <span>{upgradeChoice === "Pro" ? "Ikor Pro" : "Ikor Plus"} subscription:</span>
                         <span className="font-semibold text-gray-700 font-mono">
-                          {upgradeChoice === "Pro" ? (
-                            activeCurrency === 'NGN' ? '₦9,000.00' : '$9.00'
-                          ) : (
-                            activeCurrency === 'NGN' ? '₦3,000.00' : '$3.00'
-                          )}
+                          {upgradeChoice === "Pro" 
+                            ? (activeCurrency === 'NGN' ? "₦9,000.00" : "$9.00") 
+                            : (activeCurrency === 'NGN' ? "₦3,000.00" : "$3.00")
+                          }
                         </span>
                       </div>
                     )}
@@ -702,28 +582,28 @@ export default function TopUpModal({
                       disabled={isCheckingOut}
                       className="flex-1 px-4 py-3 border border-black/10 rounded-xl text-xs font-semibold hover:bg-gray-50 text-gray-700 transition-all disabled:opacity-50"
                     >
-                        Back
-                      </button>
-                      <button 
-                        onClick={handleProceed}
-                        disabled={!canProceed}
-                        className={`flex-1 px-4 py-3 rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center justify-center gap-2 ${
-                          canProceed 
-                            ? "bg-black text-white hover:bg-black/90 cursor-pointer" 
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        }`}
-                      >
-                        {isCheckingOut ? (
-                          <>
-                            <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
-                            Charging...
-                          </>
-                        ) : (
-                          "Proceed"
-                        )}
-                      </button>
-                    </div>
-                  </>
+                      Back
+                    </button>
+                    <button 
+                      onClick={handleProceed}
+                      disabled={!canProceed}
+                      className={`flex-1 px-4 py-3 rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center justify-center gap-2 ${
+                        canProceed 
+                          ? "bg-black text-white hover:bg-black/90 cursor-pointer" 
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      {isCheckingOut ? (
+                        <>
+                          <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
+                          Charging...
+                        </>
+                      ) : (
+                        "Proceed"
+                      )}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </motion.div>

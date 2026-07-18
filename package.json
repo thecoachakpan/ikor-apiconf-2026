@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@paystack/inline-js": "^2.23.1",
     "@supabase/supabase-js": "^2.106.2",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/api": "^2",
