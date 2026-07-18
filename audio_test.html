@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Sound Generator</title>
+<style>
+  body { 
+    font-family: system-ui, -apple-system, sans-serif; 
+    padding: 2rem; 
+    background: #0f172a; 
+    color: white; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    padding-bottom: 4rem;
+  }
+  h1 { margin-bottom: 0.5rem; text-align: center; }
+  p { margin-bottom: 2rem; color: #94a3b8; text-align: center; max-width: 600px;}
+  .grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 1rem; 
+    width: 100%; 
+    max-width: 1000px; 
+  }
+  button { 
+    padding: 1.25rem; 
+    background: #1e293b; 
+    border: 1px solid #334155; 
+    border-radius: 8px; 
+    color: white; 
+    font-size: 1rem; 
+    font-weight: 500;
+    cursor: pointer; 
+    transition: all 0.15s;
+    text-align: left;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  button:hover { 
+    background: #334155; 
+    border-color: #64748b; 
+    transform: translateY(-2px);
+  }
+  button:active { 
+    background: #0f172a; 
+    transform: translateY(1px); 
+  }
+  .highlight-btn {
+    background: #172554;
+    border-color: #1e3a8a;
+  }
+  .highlight-btn:hover {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+  }
+</style>
+</head>
+<body>
+  <h1>Heavy Double Clicks (v3)</h1>
+  <p>Deleted everything else and generated 20 new variations of the thick, heavy double click sound. Ranging from tight snaps to deep submarine thuds. Refresh the page to load!</p>
+  
+  <div class="grid" id="buttons"></div>
+
+  <script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    function playTone(type, freqStart, freqEnd, timeStart, dur, volStart, volEnd) {
+      if (volStart <= 0) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freqStart, timeStart);
+      if (freqEnd && freqEnd !== freqStart) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 1), timeStart + dur);
+      }
+      
+      gain.gain.setValueAtTime(volStart, timeStart);
+      gain.gain.exponentialRampToValueAtTime(volEnd || 0.001, timeStart + dur);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(timeStart);
+      osc.stop(timeStart + dur);
+      return { osc, gain };
+    }
+
+    function playDoubleClick(opts) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const t = audioCtx.currentTime;
+      
+      const tapType = opts.tapType || 'triangle';
+      const tapFreq1 = opts.tapFreq1 || 600;
+      const tapFreq2 = opts.tapFreq2 || 800;
+      const tapFreqEnd1 = opts.tapFreqEnd1 || tapFreq1;
+      const tapFreqEnd2 = opts.tapFreqEnd2 || tapFreq2;
+      const tapDur = opts.tapDur || 0.02;
+      const tapVol = opts.tapVol !== undefined ? opts.tapVol : 0.4;
+      
+      const thumpType = opts.thumpType || 'sine';
+      const thumpFreqStart1 = opts.thumpFreqStart1 || 100;
+      const thumpFreqEnd1 = opts.thumpFreqEnd1 || 40;
+      const thumpFreqStart2 = opts.thumpFreqStart2 || 120;
+      const thumpFreqEnd2 = opts.thumpFreqEnd2 || 50;
+      const thumpDur = opts.thumpDur || 0.06;
+      const thumpVol = opts.thumpVol !== undefined ? opts.thumpVol : 1.0;
+      
+      const delay = opts.delay || 0.08;
+
+      // Click 1
+      playTone(tapType, tapFreq1, tapFreqEnd1, t, tapDur, tapVol, 0.001);
+      playTone(thumpType, thumpFreqStart1, thumpFreqEnd1, t, thumpDur, thumpVol, 0.001);
+      
+      // Click 2
+      playTone(tapType, tapFreq2, tapFreqEnd2, t + delay, tapDur, tapVol, 0.001);
+      playTone(thumpType, thumpFreqStart2, thumpFreqEnd2, t + delay, thumpDur, thumpVol, 0.001);
+    }
+
+    const variations = [
+      { name: '0. Original Heavy', opts: {} },
+      { name: '1. Tight & Sharp', opts: { tapType: 'square', delay: 0.05, tapVol: 0.1, thumpDur: 0.04 } },
+      { name: '2. Deep & Hollow', opts: { tapType: 'sine', tapFreq1: 200, tapFreq2: 250, thumpFreqStart1: 80, delay: 0.1, thumpDur: 0.08 } },
+      { name: '3. Ascending Pop', opts: { tapFreq1: 400, tapFreq2: 900, thumpFreqStart1: 80, thumpFreqStart2: 150 } },
+      { name: '4. Descending Pop', opts: { tapFreq1: 900, tapFreq2: 400, thumpFreqStart1: 150, thumpFreqStart2: 80 } },
+      { name: '5. Wood Block', opts: { tapType: 'sine', tapFreq1: 300, tapFreq2: 300, tapDur: 0.04, thumpFreqStart1: 150, thumpFreqEnd1: 100, thumpFreqStart2: 150, thumpFreqEnd2: 100 } },
+      { name: '6. Glass Tap', opts: { tapType: 'sine', tapFreq1: 2000, tapFreq2: 2100, tapDur: 0.015, thumpVol: 0.3 } },
+      { name: '7. Muffled Thud', opts: { tapVol: 0, thumpFreqStart1: 80, thumpFreqEnd1: 30, thumpFreqStart2: 90, thumpFreqEnd2: 40, thumpDur: 0.1 } },
+      { name: '8. Rapid Fire', opts: { delay: 0.035, tapDur: 0.015, thumpDur: 0.03 } },
+      { name: '9. Sluggish Thump', opts: { delay: 0.15, thumpDur: 0.1, tapFreq1: 400, tapFreq2: 450 } },
+      { name: '10. Plastic Snap', opts: { tapType: 'triangle', tapFreq1: 1200, tapFreq2: 1200, thumpFreqStart1: 200, thumpFreqStart2: 200, tapDur: 0.03 } },
+      { name: '11. Rubber Band (Up)', opts: { tapType: 'sine', tapFreq1: 100, tapFreqEnd1: 600, tapFreq2: 100, tapFreqEnd2: 600, tapDur: 0.05, thumpVol: 0.5 } },
+      { name: '12. Metallic Clank', opts: { tapType: 'square', tapFreq1: 1500, tapFreq2: 1550, tapDur: 0.03, tapVol: 0.05, thumpFreqStart1: 150 } },
+      { name: '13. Submarine Echo', opts: { tapVol: 0.05, tapFreq1: 300, tapFreq2: 300, thumpFreqStart1: 60, thumpFreqEnd1: 50, thumpFreqStart2: 60, thumpFreqEnd2: 50, thumpDur: 0.15, delay: 0.12 } },
+      { name: '14. Crisp Switch', opts: { tapType: 'square', tapFreq1: 3000, tapFreq2: 3000, delay: 0.06, thumpVol: 0.4, tapVol: 0.05 } },
+      { name: '15. Heavy Boot', opts: { tapVol: 0.02, thumpFreqStart1: 100, thumpFreqEnd1: 20, thumpFreqStart2: 110, thumpFreqEnd2: 25, thumpDur: 0.1, delay: 0.1 } },
+      { name: '16. Bubbly', opts: { tapType: 'sine', tapFreq1: 1200, tapFreqEnd1: 200, tapFreq2: 1400, tapFreqEnd2: 250, tapDur: 0.06, thumpVol: 0.6 } },
+      { name: '17. Hollow Tube', opts: { tapType: 'triangle', tapFreq1: 400, tapFreqEnd1: 100, tapFreq2: 450, tapFreqEnd2: 120, tapDur: 0.08, thumpVol: 0.8 } },
+      { name: '18. Chunky Mechanical', opts: { tapType: 'sawtooth', tapFreq1: 200, tapFreqEnd1: 50, tapFreq2: 250, tapFreqEnd2: 60, tapDur: 0.04, tapVol: 0.15, thumpVol: 1.2 } },
+      { name: '19. Soft Heartbeat', opts: { tapVol: 0, delay: 0.25, thumpFreqStart1: 50, thumpFreqEnd1: 30, thumpFreqStart2: 55, thumpFreqEnd2: 35, thumpDur: 0.15, thumpVol: 1.5 } },
+      { name: '20. Aggressive Snap', opts: { tapType: 'sawtooth', tapFreq1: 2000, tapFreqEnd1: 100, tapFreq2: 2200, tapFreqEnd2: 120, tapDur: 0.05, tapVol: 0.2, thumpFreqStart1: 150, thumpDur: 0.08 } },
+    ];
+
+    const container = document.getElementById('buttons');
+    variations.forEach((v, index) => {
+      const btn = document.createElement('button');
+      btn.textContent = v.name;
+      if (index === 0) btn.className = 'highlight-btn';
+      btn.onclick = () => playDoubleClick(v.opts);
+      container.appendChild(btn);
+    });
+  </script>
+</body>
+</html>

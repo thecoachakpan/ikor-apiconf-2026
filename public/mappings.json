@@ -1,0 +1,15 @@
+{
+  "slack": ["slack"],
+  "whatsapp": ["whatsapp"],
+  "cursor": ["cursor"],
+  "vscode": ["visual studio code", "vscode"],
+  "notion": ["notion"],
+  "spotify": ["spotify"],
+  "discord": ["discord"],
+  "teams": ["teams"],
+  "zoom": ["zoom"],
+  "figma": ["figma"],
+  "gmail": ["gmail", "mail.google.com"],
+  "youtube": ["youtube"],
+  "github": ["github"]
+}
