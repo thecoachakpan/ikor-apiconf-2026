@@ -414,8 +414,8 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
             const meta = session.user.user_metadata || {};
             mcpUserName = [meta.first_name, meta.last_name].filter(Boolean).join(" ") || meta.full_name || "";
             groqKey = await invoke<string>("fetch_groq_key", {
-              supabaseUrl: import.meta.env.VITE_SUPABASE_URL || "",
-              supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || ""
+              supabaseUrl: import.meta.env.VITE_SUPABASE_URL || "https://njjcvlmjhnjycdogxszl.supabase.co",
+              supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk"
             });
           }
         } catch (err) {
