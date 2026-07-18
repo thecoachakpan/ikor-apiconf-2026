@@ -12,7 +12,7 @@ If you do not want to install Rust and compile the source code locally, you can 
 
 1.  **Download the Installer:**
     *   Go to the [Releases](https://github.com/thecoachakpan/ikor-apiconf-2026/releases) page of this repository.
-    *   Download the latest `.exe` (Windows) or `.dmg` (macOS) installer.
+    *   Download the latest `.exe` (Windows) installer.
 2.  **Bypass SmartScreen (Windows):**
     *   Since this is an unsigned developer build, Windows Defender will show a warning ("Windows protected your PC").
     *   Click **"More info"** and then select **"Run anyway"**.
