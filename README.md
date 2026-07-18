@@ -1,4 +1,4 @@
-# Ikor (Sayikor) — Context-Aware Voice & MCP Overlay
+# Ikor — Agentic Voice-to-MCP Payment Infrastructure
 
 Ikor is an intelligent, windowless speech-to-text overlay that lets you type anywhere on your screen using your voice, apply app-aware AI formatting (ScribePro), and execute financial operations via spoken commands (Voice to MCP) integrated with the **Monnify Sandbox API**.
 
@@ -46,11 +46,6 @@ Ensure you have the following installed on your machine:
     ```bash
     npm install
     ```
-3.  Create your environment configuration:
-    ```bash
-    cp .env.example .env
-    ```
-    Populate the `.env` file with your **Supabase** database credentials and **Gemini API Key**.
 
 ### 3. Running Locally
 Run the following command to launch the application in development mode:
@@ -69,7 +64,7 @@ Provides low-latency, accurate speech-to-text directly into any text input.
 1.  Open any text editor (Notepad, VS Code, a browser search bar).
 2.  Focus your cursor inside the text area.
 3.  **Press and hold `Ctrl + Alt`** on your keyboard. The circular waveform overlay will appear on your screen.
-4.  Dictate a sentence (e.g., *"Sayikor is running on my local machine and dictating perfectly."*).
+4.  Dictate a sentence (e.g., *"I am running a voice payment app on my local machine and dictating perfectly."*).
 5.  **Release the keys.** The app transcribes the audio and instantly pastes the text at your cursor.
 
 ---
@@ -77,9 +72,9 @@ Provides low-latency, accurate speech-to-text directly into any text input.
 ### ✍️ Mode 2: ScribePro (Context & App Awareness)
 Uses your active window's identity to format and style transcripts intelligently.
 1.  Open **VS Code** and focus on a code file, OR open **Slack** and focus on a message input.
-2.  **Hold `Ctrl + Alt`** and dictate your text:
+2.  **Hold `Ctrl + Win`** and dictate your text:
     *   **In VS Code:** Say *"write a quicksort function in rust"* ➔ Ikor automatically detects you are in an IDE and injects formatted Rust markdown code blocks.
-    *   **In Slack/Notion:** Say *"mention John Doe and set up a call"* ➔ Ikor detects you are in Slack and auto-formats the mention to `@John Doe` instead of plain text.
+    *   **In Slack/Notion:** Say *"tag John Doe and set up a call"* ➔ Ikor detects you are in Slack and auto-formats the mention to `@John Doe` instead of plain text.
 
 ---
 
