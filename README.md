@@ -74,7 +74,7 @@ Uses your active window's identity to format and style transcripts intelligently
 1.  Open **VS Code** and focus on a code file, OR open **Slack** and focus on a message input.
 2.  **Hold `Ctrl + Win`** and dictate your text:
     *   **In VS Code:** Say *"write a quicksort function in rust"* ➔ Ikor automatically detects you are in an IDE and injects formatted Rust markdown code blocks.
-    *   **In Slack/Notion:** Say *"tag John Doe and set up a call"* ➔ Ikor detects you are in Slack and auto-formats the mention to `@John Doe` instead of plain text.
+    *   **In Slack/Notion:** Say *"tag John Doe and set up a call for 8am. Oh no, schedule the call for 10am instead."* ➔ Ikor detects you are in Slack and auto-formats the mention to `@John Doe` instead of plain text, then applies your intent to schedule the call for 10am.
 
 ---
 
