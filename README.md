@@ -69,7 +69,7 @@ Provides low-latency, accurate speech-to-text directly into any text input.
 1.  Open any text editor (Notepad, VS Code, a browser search bar).
 2.  Focus your cursor inside the text area.
 3.  **Press and hold `Ctrl + Alt`** on your keyboard. The circular waveform overlay will appear on your screen.
-4.  Dictate a sentence (e.g., *"Sayikor is running on my local machine and dictating perfectly."*).
+4.  Dictate a sentence (e.g., *"I am running a voice payment app on my local machine and dictating perfectly."*).
 5.  **Release the keys.** The app transcribes the audio and instantly pastes the text at your cursor.
 
 ---
@@ -77,9 +77,9 @@ Provides low-latency, accurate speech-to-text directly into any text input.
 ### ✍️ Mode 2: ScribePro (Context & App Awareness)
 Uses your active window's identity to format and style transcripts intelligently.
 1.  Open **VS Code** and focus on a code file, OR open **Slack** and focus on a message input.
-2.  **Hold `Ctrl + Alt`** and dictate your text:
+2.  **Hold `Ctrl + Win`** and dictate your text:
     *   **In VS Code:** Say *"write a quicksort function in rust"* ➔ Ikor automatically detects you are in an IDE and injects formatted Rust markdown code blocks.
-    *   **In Slack/Notion:** Say *"mention John Doe and set up a call"* ➔ Ikor detects you are in Slack and auto-formats the mention to `@John Doe` instead of plain text.
+    *   **In Slack/Notion:** Say *"tag John Doe and set up a call"* ➔ Ikor detects you are in Slack and auto-formats the mention to `@John Doe` instead of plain text.
 
 ---
 
@@ -87,7 +87,7 @@ Uses your active window's identity to format and style transcripts intelligently
 Translates spoken intent into structured financial operations using the Monnify Sandbox.
 1.  Open **Settings ➔ MCP Server** tab in the Ikor dashboard.
 2.  Add your Monnify Sandbox keys (`API Key`, `Secret Key`, and `Contract Code`) and toggle **Sandbox Mode** to `true`, then click **Save**.
-3.  Focus your cursor on a text area, **hold `Ctrl + Alt`**, and speak a financial command:
+3.  Focus your cursor on a text area, **hold `Ctrl + Shift + S`**, and speak a financial command:
     *   *“Create an invoice of 5,000 Naira to John Doe for consulting services.”*
     *   *“Verify the bank account 1234567890 at GTBank.”*
     *   *“Initiate a sandbox refund of 1,200 Naira for transaction reference 987654.”*
