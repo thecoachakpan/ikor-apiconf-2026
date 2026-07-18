@@ -11,7 +11,7 @@ Built with **Tauri v2**, **React 19**, **TypeScript**, and **Tailwind 4**.
 If you do not want to install Rust and compile the source code locally, you can run the pre-compiled application.
 
 1.  **Download the Installer:**
-    *   Go to the [Releases](https://github.com/thecoachakpan/sayikor/releases) page of this repository.
+    *   Go to the [Releases](https://github.com/thecoachakpan/ikor-apiconf-2026/releases) page of this repository.
     *   Download the latest `.exe` (Windows) or `.dmg` (macOS) installer.
 2.  **Bypass SmartScreen (Windows):**
     *   Since this is an unsigned developer build, Windows Defender will show a warning ("Windows protected your PC").
@@ -39,8 +39,8 @@ Ensure you have the following installed on your machine:
 ### 2. Installation
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/thecoachakpan/sayikor.git
-    cd sayikor
+    git clone https://github.com/thecoachakpan/ikor-apiconf-2026.git
+    cd ikor-apiconf-2026
     ```
 2.  Install frontend and Tauri node dependencies:
     ```bash
