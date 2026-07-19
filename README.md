@@ -32,9 +32,11 @@ To inspect the source code, configure custom API endpoints, and run the project 
 
 ### 1. Prerequisites
 Ensure you have the following installed on your machine:
-- [Node.js (LTS version)](https://nodejs.org/)
-- [Rust & Cargo (stable)](https://www.rust-lang.org/tools/install)
-- Tauri prerequisites for your OS (e.g. C++ Build Tools on Windows). See the [Tauri Setup Guide](https://v2.tauri.app/start/prerequisites/).
+- **Node.js (LTS version)** & **npm/npx** (required to run the local Monnify MCP server)
+- **Rust & Cargo (stable)**
+- **Windows C++ Build Tools** (specifically the "Desktop development with C++" workload from Visual Studio Build Tools)
+- **WebView2 Runtime** (typically installed by default on Windows 10/11)
+- See the official [Tauri Windows Setup Guide](https://v2.tauri.app/start/prerequisites/#windows) for details.
 
 ### 2. Installation
 1. Clone the repository:
