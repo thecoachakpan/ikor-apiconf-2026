@@ -956,15 +956,43 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           userWordsRef.current = Number(storedWords);
           console.log("Loaded userWords into ref from store:", userWordsRef.current);
         } else {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const val = session.user.user_metadata?.user_words_balance;
-            if (typeof val === 'number') {
-              userWordsRef.current = val;
-              await storeRef.current.set("userWords", val);
-              await storeRef.current.save();
-              console.log("Loaded userWords into ref from Supabase:", userWordsRef.current);
+          // Attempt to load from localStorage cache first (synchronous/fast)
+          let cachedWords: number | null = null;
+          try {
+            const cachedUserStr = localStorage.getItem("sayikor_user");
+            if (cachedUserStr) {
+              const cachedUser = JSON.parse(cachedUserStr);
+              const val = cachedUser?.user_metadata?.user_words_balance;
+              if (typeof val === 'number') {
+                cachedWords = val;
+              }
             }
+          } catch (_) {}
+
+          if (cachedWords !== null) {
+            userWordsRef.current = cachedWords;
+            console.log("Loaded userWords into ref from cached localStorage:", userWordsRef.current);
+          } else {
+            userWordsRef.current = 900; // Default fallback
+            console.log("No userWords cached, defaulted to 900");
+          }
+
+          // Query Supabase asynchronously and non-blockingly ONLY if online and not in offline mode
+          if (navigator.onLine && !offlineModeRef.current) {
+            supabase.auth.getSession().then(({ data: { session } }) => {
+              if (session) {
+                const val = session.user.user_metadata?.user_words_balance;
+                if (typeof val === 'number') {
+                  userWordsRef.current = val;
+                  if (storeRef.current) {
+                    storeRef.current.set("userWords", val)
+                      .then(() => storeRef.current?.save())
+                      .catch((err: any) => console.warn("Failed to save userWords to store asynchronously:", err));
+                  }
+                  console.log("Loaded userWords into ref asynchronously from Supabase:", userWordsRef.current);
+                }
+              }
+            }).catch((e: any) => console.warn("Failed to fetch session for userWords balance asynchronously:", e));
           }
         }
 
