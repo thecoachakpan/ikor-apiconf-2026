@@ -43,7 +43,7 @@ Ikor is designed to be a secure, privacy-first productivity overlay. Because it 
 ## 🚨 5. Telemetry & The Remote Kill Switch
 
 - To prevent API overhead, misuse, or cost spikes, Ikor uses a **Supabase telemetry log pipeline**.
-- In the event of a model endpoint failure, high latency, or API key compromise, the CEO/CTO can toggle remote configuration tables on Supabase.
+- In the event of a model endpoint failure, high latency, or API key compromise, the super-admin can toggle remote configuration tables on Supabase.
 - This acts as an instant **Remote Kill Switch** or rerouter, allowing the app to switch transcription pipelines (e.g. from Groq to Gemini Flash) in real time without requiring the client to reinstall or update the app.
 
 ---
