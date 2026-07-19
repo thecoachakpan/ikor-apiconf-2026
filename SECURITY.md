@@ -15,11 +15,11 @@ Ikor is designed to be a secure, privacy-first productivity overlay. Because it 
 
 ---
 
-## 🔑 2. Local-First API Credentials
+## 🔑 2. Sandboxed API Credentials (Normal Users vs. Merchants)
 
-- All provider credentials (such as `monnify_api_key`, `monnify_secret_key`, `monnify_contract_code`, and `groq_api_key`) are stored locally on the user's machine using Tauri's native `StoreRef` plugin.
-- These credentials are sandboxed on your local hard drive and are **never** synchronized to any cloud server.
-- The credentials are only read locally to spin up the local Monnify MCP server via `npx` during runtime.
+- **For Normal Users (Default Wallet Flow):** Normal users only store their personal LLM API credentials (such as `groq_api_key` or `gemini_api_key`) and their Supabase session tokens. They **do not** need to provide or store Monnify API keys. Their speech credit top-ups are processed via the central Ikor merchant backend.
+- **For Businesses & Custom Merchant Integrations:** If a business user integrates their own Monnify account in the settings panel to handle custom MCP transactions (e.g., invoice creation, bank verifications, or customer debits), their private credentials (`monnify_api_key`, `monnify_secret_key`, and `monnify_contract_code`) are stored locally on their machine using Tauri's native `StoreRef` plugin.
+- **Sandboxed Storage:** All locally stored keys are sandboxed on your local hard drive, are **never** synchronized to any remote server, and are only read to initiate local workflows or spin up the local MCP server during runtime.
 
 ---
 
