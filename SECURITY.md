@@ -15,11 +15,11 @@ Ikor is designed to be a secure, privacy-first productivity overlay. Because it 
 
 ---
 
-## 🔑 2. Sandboxed API Credentials (Normal Users vs. Merchants)
+## 🔑 2. Zero-Configuration API Credentials for Normal Users
 
-- **For Normal Users (Default Wallet Flow):** Normal users only store their personal LLM API credentials (such as `groq_api_key` or `gemini_api_key`) and their Supabase session tokens. They **do not** need to provide or store Monnify API keys. Their speech credit top-ups are processed via the central Ikor merchant backend.
-- **For Businesses & Custom Merchant Integrations:** If a business user integrates their own Monnify account in the settings panel to handle custom MCP transactions (e.g., invoice creation, bank verifications, or customer debits), their private credentials (`monnify_api_key`, `monnify_secret_key`, and `monnify_contract_code`) are stored locally on their machine using Tauri's native `StoreRef` plugin.
-- **Sandboxed Storage:** All locally stored keys are sandboxed on your local hard drive, are **never** synchronized to any remote server, and are only read to initiate local workflows or spin up the local MCP server during runtime.
+- **For Normal Users:** Normal users do **not** need to provide or store any API credentials (neither Monnify keys nor LLM provider keys like Groq or Gemini). All Speech-to-Text (ASR) transcription and LLM text formatting are powered securely by the central Ikor system keys stored and managed on **Supabase**. Normal users only log in with their account, keeping their local setup zero-config and completely secure.
+- **For Developers & Custom Merchant Integrations:** Users who wish to run their own custom local development builds or connect their own business's Monnify accounts can configure their personal API keys (`monnify_api_key`, `monnify_secret_key`, `monnify_contract_code`, and `groq_api_key`) in the local settings panel. These keys are stored purely on their local machines using Tauri's native sandboxed `StoreRef` plugin.
+- **Sandboxed Storage:** All locally configured keys are sandboxed on your local hard drive, are **never** synchronized to any remote server, and are only read to initiate local workflows or spin up the local MCP server during runtime.
 
 ---
 
