@@ -26,6 +26,18 @@ If you do not want to install Rust and compile the source code locally, you can 
 
 ---
 
+## 🖥️ PC Specifications & System Requirements
+
+To run the pre-compiled application smoothly:
+- **Operating System:** Windows 10 (version 1903 or higher) or Windows 11 (64-bit). *(Required for native Win32 window context and active app detection)*
+- **Processor (CPU):** Intel Core i3 / AMD Ryzen 3 or higher. (Intel Core i5 / AMD Ryzen 5 recommended for local Whisper decoding).
+- **Memory (RAM):** 4 GB minimum (8 GB recommended).
+- **Disk Space:** ~150 MB for the core installation (~1.5 GB additional space required only if using the offline local Whisper model fallback).
+- **Hardware:** A functional microphone input device.
+- **Network:** An active internet connection for low-latency cloud transcription and parsing.
+
+---
+
 ## 🛠️ Developer Setup & Local Compilation
 
 To inspect the source code, configure custom API endpoints, and run the project in development mode:
