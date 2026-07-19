@@ -1,6 +1,6 @@
 # Ikor — Agentic Voice-to-MCP Payment & Productivity Infrastructure
 
-Ikor (also known as Sayikor) is a windowless, lightweight speech overlay that lets you type anywhere on your screen using your voice, apply app-aware AI formatting (ScribePro), and execute financial operations via spoken commands (Voice to MCP) integrated with the **Monnify Sandbox API**.
+Ikor is a windowless, lightweight speech overlay that lets you type anywhere on your screen using your voice, apply app-aware AI formatting (ScribePro), and execute financial operations via spoken commands (Voice to MCP) integrated with the **Monnify Sandbox API**.
 
 Built with **Tauri v2**, **React 19**, **TypeScript**, and **Tailwind 4**.
 
