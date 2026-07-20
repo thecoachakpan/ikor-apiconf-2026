@@ -68,7 +68,7 @@ serve(async (req) => {
         paymentDescription: paymentDescription || "Ikor Word Top-up",
         currencyCode: "NGN",
         contractCode,
-        redirectUrl: "https://sayikor.vercel.app/payment-success" // Redirect page on your Vercel domain
+        redirectUrl: "https://sayikor.vercel.app/payment-success" // Redirect page on Vercel domain
       })
     })
 

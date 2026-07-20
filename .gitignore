@@ -29,3 +29,6 @@ dist-ssr
 # Rust/Tauri build artifacts
 src-tauri/target/
 
+sayikor-hackathon-compare/
+
+

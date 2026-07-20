@@ -147,7 +147,19 @@ export default function ApprovalPanel() {
 
         if (error || !data || !data.checkoutUrl) {
           console.error("Initialize payment error from edge function:", error || data);
-          throw new Error(data?.error || "Failed to initialize payment via Sayikor payment service.");
+          // Extract the best error message from the Supabase response
+          let edgeFnMsg = "";
+          if (typeof error === "object" && error !== null) {
+            // Supabase FunctionsHttpError / FunctionsRelayError / FunctionsFetchError
+            edgeFnMsg = error.message || "";
+            if (!edgeFnMsg && typeof error.context === "object" && error.context) {
+              edgeFnMsg = error.context.message || error.context.error || "";
+            }
+          }
+          if (!edgeFnMsg && data && typeof data === "object") {
+            edgeFnMsg = data.error || data.message || "";
+          }
+          throw new Error(edgeFnMsg || "Failed to initialize payment via Sayikor payment service.");
         }
 
         const checkoutUrl = data.checkoutUrl;
@@ -204,7 +216,15 @@ export default function ApprovalPanel() {
     } catch (err) {
       console.error("Monnify MCP Tool Error:", err);
       setIsCallingMcp(false);
-      setMcpError(typeof err === "string" ? err : JSON.stringify(err));
+      let errMsg = "";
+      if (typeof err === "string") {
+        errMsg = err;
+      } else if (err instanceof Error) {
+        errMsg = err.message || String(err);
+      } else if (typeof err === "object" && err !== null) {
+        errMsg = (err as any).message || (err as any).context?.message || (err as any).error || String(err);
+      }
+      setMcpError(errMsg || "An unexpected error occurred. Please try again.");
     }
   };
 
