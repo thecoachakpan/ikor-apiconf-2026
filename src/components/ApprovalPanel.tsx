@@ -243,7 +243,20 @@ export default function ApprovalPanel() {
     }, 150);
   };
 
-
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!mcpTransaction) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleApproveMcp();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        handleRejectMcp();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mcpTransaction, isCallingMcp, sessionUser, hasMinError, hasMaxError]);
 
   useEffect(() => {
     let isMounted = true;
@@ -472,25 +485,19 @@ export default function ApprovalPanel() {
 
   const confirmPanel = async () => {
     if (!currentRevision || !currentRevision.response) return;
-    const textToType = currentRevision.response;
     stopZOrderLoop();
-    await invoke("set_approval_mode", { text: textToType });
-    if (navigator.clipboard) await navigator.clipboard.writeText(textToType);
+    // Set approval text — the Rust background thread will detect Enter and handle
+    // clipboard + paste after hiding the window (focus returns to target app)
+    await invoke("set_approval_mode", { text: currentRevision.response });
+    // Also copy to clipboard via browser API for Ctrl+Alt+S re-paste
+    if (navigator.clipboard) await navigator.clipboard.writeText(currentRevision.response);
     
     setRevisions([]);
     setCurrentRevisionIndex(0);
+    // Hide window to return focus to the target app
     const win = getCurrentWindow();
     await win.hide();
     await emit("approval-closed");
-
-    // Explicitly trigger type_text after hiding approval panel so focus has returned to target input field
-    setTimeout(async () => {
-      try {
-        await invoke("type_text", { text: textToType });
-      } catch (err) {
-        console.error("Failed to type text on confirm:", err);
-      }
-    }, 120);
   };
 
   if (mcpTransaction) {

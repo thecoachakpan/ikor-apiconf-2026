@@ -1297,18 +1297,7 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          (async () => {
-            let context: string | null = null;
-            if (contextAwarenessRef.current) {
-              try {
-                context = await invoke<string>("get_window_context_optimized", { needsFullPage: false });
-              } catch (e) {
-                console.warn("[Context] Failed to get active window context:", e);
-              }
-            }
-            windowContextRef.current = context;
-            startRecording(windowContextRef.current, true);
-          })();
+          startRecording(null, true);
         } else if (id === "scribe") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1321,18 +1310,7 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          (async () => {
-            let context: string | null = null;
-            if (contextAwarenessRef.current) {
-              try {
-                context = await invoke<string>("get_window_context_optimized", { needsFullPage: false });
-              } catch (e) {
-                console.warn("[Context] Failed to get active window context:", e);
-              }
-            }
-            windowContextRef.current = context;
-            startRecording(windowContextRef.current, false);
-          })();
+          startRecording(windowContextRef.current, false);
         } else if (id === "mcp") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1560,9 +1538,8 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           const volumes = Array.from({ length: WAVE_LINES }).map((_, i) => {
             const dist = Math.abs(i - center);
             const cleanVal = currentMicVolumeRef.current;
-            // Native RMS volumes range from ~2.5 (silence/quiet) to 25+ (speaking)
-            // Scaling (cleanVal / 15) * 10 maps speaking volumes smoothly between 3px and 12px bar heights
-            const scaled = Math.min(12, Math.max(3, (cleanVal / 15) * 10));
+            // Boost mic volume sensitivity so normal speaking voice animates bars smoothly between 3.5px and 12px
+            const scaled = Math.min(12, Math.max(3.5, 3.5 + (cleanVal * 0.45)));
 
             const multiplier = 1 - (dist * 0.18);
             return Math.max(SILENCE_HEIGHT, scaled * multiplier);
