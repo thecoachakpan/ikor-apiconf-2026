@@ -332,28 +332,64 @@ export default function Dashboard(_props: DashboardProps) {
   const wordPercentage = Math.max(0, Math.min(100, (userWords / maxWordsCapacity) * 100));
   const [proPlanDaysLeft, setProPlanDaysLeft] = useState<number | null>(30); // 30-day Free Trial of Ikor Plus
   
-  // Persistent billing & subscriptions transaction history
+  // Persistent billing & subscriptions transaction history (persisted in Supabase & local cache)
   const [billingTransactions, setBillingTransactions] = useState<any[]>(() => {
     const cached = localStorage.getItem("ikor_billing_transactions2");
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((t: any) => t.id !== "TXN-30193");
+        }
       } catch (e) {
         // Fallback
       }
     }
-    return [
-      {
-        id: "TXN-30193",
-        date: "2026-06-02 10:26 AM",
-        description: "Ikor Plus 30-Day Free Trial Activated",
-        words: "900 words",
-        amount: "₦0.00",
-        status: "Successful",
-        method: "System Promotion"
-      }
-    ];
+    return [];
   });
+
+  // Sync user words and billing history from Supabase user_metadata on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.user_metadata) {
+        const meta = session.user.user_metadata;
+        if (typeof meta.user_words_balance === 'number') {
+          setUserWords(meta.user_words_balance);
+        }
+        if (Array.isArray(meta.billing_transactions)) {
+          const cleaned = meta.billing_transactions.filter((t: any) => t.id !== "TXN-30193");
+          setBillingTransactions(cleaned);
+          localStorage.setItem("ikor_billing_transactions2", JSON.stringify(cleaned));
+        }
+      }
+    });
+  }, []);
+
+  // Listen for real-time word updates & billing history events across windows
+  useEffect(() => {
+    if (!isTauri) return;
+    let unlistenWords: any;
+    let unlistenBilling: any;
+
+    listen("user-words-updated", (event: any) => {
+      if (typeof event.payload === 'number') {
+        setUserWords(event.payload);
+      }
+    }).then(fn => { unlistenWords = fn; });
+
+    listen("billing-history-updated", (event: any) => {
+      if (Array.isArray(event.payload)) {
+        const cleaned = event.payload.filter((t: any) => t.id !== "TXN-30193");
+        setBillingTransactions(cleaned);
+        localStorage.setItem("ikor_billing_transactions2", JSON.stringify(cleaned));
+      }
+    }).then(fn => { unlistenBilling = fn; });
+
+    return () => {
+      if (unlistenWords) unlistenWords();
+      if (unlistenBilling) unlistenBilling();
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("ikor_billing_transactions2", JSON.stringify(billingTransactions));

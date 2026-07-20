@@ -14,6 +14,9 @@ import { supabase } from "./lib/supabaseClient";
 import { calculateWordDeduction } from "./utils/wordDeduction";
 import { parseMonnifyIntent } from "./lib/mcpClient";
 
+const SUPABASE_URL = "https://njjcvlmjhnjycdogxszl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
+
 const WAVE_LINES = 7;
 const SILENCE_HEIGHT = 2;
 const SILENCE_ARRAY = new Array(WAVE_LINES).fill(SILENCE_HEIGHT);
@@ -191,12 +194,20 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
     const intervalId = setInterval(async () => {
       try {
         console.log("Polling payment verification for ref:", pendingPayment.transactionReference);
-        const { data, error } = await supabase.functions.invoke("verify-monnify-payment", {
-          body: { transactionReference: pendingPayment.transactionReference }
+        const verifyRes = await fetch(`${SUPABASE_URL}/functions/v1/verify-monnify-payment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ transactionReference: pendingPayment.transactionReference })
         });
 
-        if (error) {
-          console.warn("verify-monnify-payment edge function error:", error);
+        const data = await verifyRes.json();
+
+        if (!verifyRes.ok) {
+          console.warn("verify-monnify-payment edge function response not ok:", data);
           return;
         }
 
@@ -205,41 +216,64 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           clearInterval(intervalId);
           activePollingRefs.current.delete(pendingPayment.transactionReference);
 
-          // Get user details to calculate and update word balance
-          const { data: { user } } = await supabase.auth.getUser();
+          // Get user details to calculate and update word balance & billing history
+          const { data: { session } } = await supabase.auth.getSession();
+          const user = session?.user || (await supabase.auth.getUser()).data.user;
           if (user) {
             const currentPlan = user.user_metadata?.plan_name || "Free Trial";
             
             // Calculate words to add
-            let rate = 0.1; // fallback
+            let rate = 0.05;
             if (currentPlan === "Ikor Pro" || currentPlan === "Pro plan") {
               rate = 0.025;
-            } else if (currentPlan === "Ikor Plus" || currentPlan === "Free Trial" || currentPlan === "Free") {
-              rate = 0.05;
             }
             
             const wordsAdded = pendingPayment.amount <= 150 ? 0 : Math.round(((pendingPayment.amount - 150) / 1.06) / rate);
             const currentWords = user.user_metadata?.user_words_balance || 0;
             const newWordsVal = currentWords + wordsAdded;
 
-            // Update user words balance in Supabase
+            // Build new transaction entry for billing history
+            const existingTxns = Array.isArray(user.user_metadata?.billing_transactions) 
+              ? user.user_metadata.billing_transactions.filter((t: any) => t.id !== "TXN-30193")
+              : [];
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+            const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+            const newTxn = {
+              id: "TXN-" + Math.floor(10000 + Math.random() * 90000),
+              date: `${dateStr} ${timeStr}`,
+              description: `Word Balance Top-Up (${wordsAdded.toLocaleString()} words)`,
+              words: `${wordsAdded.toLocaleString()} words`,
+              amount: `₦${pendingPayment.amount.toLocaleString()}.00`,
+              status: "Successful",
+              method: "Monnify (Card/Transfer)"
+            };
+
+            const updatedTxns = [newTxn, ...existingTxns];
+
+            // Update user words balance and billing transactions in Supabase permanently
             const metadata = user.user_metadata || {};
             await supabase.auth.updateUser({
               data: {
                 ...metadata,
-                user_words_balance: newWordsVal
+                user_words_balance: newWordsVal,
+                billing_transactions: updatedTxns
               }
             });
 
-            // Update local ref & Tauri store
+            // Update local ref & Tauri store & localStorage
             userWordsRef.current = newWordsVal;
             const store = storeRef.current || await load("store.json");
             await store.set("userWords", newWordsVal);
             await store.delete("pendingVoicePayment");
             await store.save();
+            localStorage.setItem("ikor_billing_transactions2", JSON.stringify(updatedTxns));
 
             // Emit to sync other windows
             await emit("user-words-updated", newWordsVal);
+            await emit("billing-history-updated", updatedTxns);
             await emit("voice-payment-success", {
               amount: pendingPayment.amount,
               wordsAdded,
@@ -257,7 +291,7 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
               }
               if (granted) {
                 sendNotification({
-                  title: "Ikor Top-up Successful",
+                  title: "Sayikor Payment Successful",
                   body: `Successfully credited your wallet with ${wordsAdded.toLocaleString()} words!`
                 });
               }
@@ -265,13 +299,13 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
               console.error("Failed to trigger native notification via plugin:", notificationErr);
               // Graceful fallback to native browser desktop notification if plugin is unavailable
               if (Notification.permission === "granted") {
-                new Notification("Ikor Top-up Successful", {
+                new Notification("Sayikor Payment Successful", {
                   body: `Successfully credited your wallet with ${wordsAdded.toLocaleString()} words!`
                 });
               } else if (Notification.permission !== "denied") {
                 Notification.requestPermission().then((perm) => {
                   if (perm === "granted") {
-                    new Notification("Ikor Top-up Successful", {
+                    new Notification("Sayikor Payment Successful", {
                       body: `Successfully credited your wallet with ${wordsAdded.toLocaleString()} words!`
                     });
                   }
@@ -280,8 +314,8 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
             }
           }
         }
-      } catch (err) {
-        console.error("Error in voice payment polling loop:", err);
+      } catch (pollErr) {
+        console.warn("Error inside payment polling loop:", pollErr);
       }
     }, 5000);
   };
@@ -991,6 +1025,15 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
         if (pending) {
           startPaymentPolling(pending);
         }
+
+        // Listen for voice-payment-initiated event in real-time
+        listen("voice-payment-initiated", (event: any) => {
+          const pendingPayment = event.payload;
+          if (pendingPayment) {
+            console.log("voice-payment-initiated event received in App.tsx, starting polling:", pendingPayment);
+            startPaymentPolling(pendingPayment);
+          }
+        });
       } catch (e) {
         console.error("Failed to pre-load store.json:", e);
       }
