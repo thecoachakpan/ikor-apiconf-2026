@@ -118,9 +118,8 @@ export default function ApprovalPanel() {
 
     // Inject arguments for monnify_initiate_payment
     if (mappedName === "monnify_initiate_payment") {
-      if (!finalArgs.paymentReference) {
-        finalArgs.paymentReference = "MONNIFY-" + Date.now() + "-" + Math.floor(1000 + Math.random() * 9000);
-      }
+      // Always generate a fresh unique payment reference to prevent Monnify "Duplicate payment reference" error
+      finalArgs.paymentReference = "MONNIFY-" + Date.now() + "-" + Math.floor(100000 + Math.random() * 900000);
       if (!finalArgs.customerEmail && sessionUser?.email) {
         finalArgs.customerEmail = sessionUser.email;
       }

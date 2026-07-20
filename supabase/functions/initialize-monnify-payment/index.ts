@@ -37,7 +37,7 @@ serve(async (req) => {
     if (!loginResponse.ok) {
       const loginErr = await loginResponse.text()
       console.error("Monnify auth login failed:", loginErr)
-      return new Response(JSON.stringify({ error: "Failed to authenticate with Monnify" }), {
+      return new Response(JSON.stringify({ error: `Monnify Auth Error: ${loginErr}` }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -53,6 +53,8 @@ serve(async (req) => {
       })
     }
 
+    const paymentRef = reference || ("MONNIFY-" + Date.now() + "-" + Math.floor(100000 + Math.random() * 900000));
+
     // 2. Initialize Transaction
     const initResponse = await fetch(`${baseUrl}/api/v1/merchant/transactions/init-transaction`, {
       method: "POST",
@@ -64,7 +66,7 @@ serve(async (req) => {
         amount,
         customerName: customerName || "Ikor User",
         customerEmail: customerEmail || "user@example.com",
-        paymentReference: reference,
+        paymentReference: paymentRef,
         paymentDescription: paymentDescription || "Ikor Word Top-up",
         currencyCode: "NGN",
         contractCode,
@@ -75,7 +77,7 @@ serve(async (req) => {
     if (!initResponse.ok) {
       const initErr = await initResponse.text()
       console.error("Monnify init-transaction failed:", initErr)
-      return new Response(JSON.stringify({ error: "Failed to initialize Monnify transaction" }), {
+      return new Response(JSON.stringify({ error: `Monnify Init Error: ${initErr}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
