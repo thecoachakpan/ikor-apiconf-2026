@@ -7,7 +7,9 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, customerEmail, customerName, reference, paymentDescription } = await req.json()
+    const body = await req.json()
+    const { amount, customerEmail, customerName, reference, paymentReference, paymentDescription } = body
+    const finalRef = paymentReference || reference
 
     const apiKey = Deno.env.get('MONNIFY_API_KEY')
     const secretKey = Deno.env.get('MONNIFY_SECRET_KEY')
@@ -38,7 +40,7 @@ serve(async (req) => {
       const loginErr = await loginResponse.text()
       console.error("Monnify auth login failed:", loginErr)
       return new Response(JSON.stringify({ error: "Failed to authenticate with Monnify" }), {
-        status: 401,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -64,7 +66,7 @@ serve(async (req) => {
         amount,
         customerName: customerName || "Ikor User",
         customerEmail: customerEmail || "user@example.com",
-        paymentReference: reference,
+        paymentReference: finalRef,
         paymentDescription: paymentDescription || "Ikor Word Top-up",
         currencyCode: "NGN",
         contractCode,

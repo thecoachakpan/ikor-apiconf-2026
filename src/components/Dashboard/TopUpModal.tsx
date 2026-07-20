@@ -174,18 +174,30 @@ export default function TopUpModal({
 
     try {
       const reference = "MONNIFY-" + Math.floor(1000000 + Math.random() * 9000000);
-      const { data, error } = await supabase.functions.invoke("initialize-monnify-payment", {
-        body: {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://njjcvlmjhnjycdogxszl.supabase.co";
+      const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/initialize-monnify-payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
           amount: totalAmount,
           customerEmail: email || "user@example.com",
           customerName: "Ikor User",
           reference,
+          paymentReference: reference,
           paymentDescription: "Ikor Word Top-up"
-        }
+        })
       });
 
-      if (error || !data || !data.checkoutUrl) {
-        console.error("Initialize payment error:", error || data);
+      const data = await response.json();
+
+      if (!response.ok || !data || !data.checkoutUrl) {
+        console.error("Initialize payment error:", data);
         alert(data?.error || "Failed to initialize Monnify payment. Please try again.");
         setIsCheckingOut(false);
         return;
@@ -206,12 +218,19 @@ export default function TopUpModal({
     if (!pendingMonnifyRef) return;
     setIsVerifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("verify-monnify-payment", {
-        body: { transactionReference: pendingMonnifyRef }
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://njjcvlmjhnjycdogxszl.supabase.co";
+      const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
+
+      const verifyRes = await fetch(`${SUPABASE_URL}/functions/v1/verify-monnify-payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ transactionReference: pendingMonnifyRef })
       });
-      if (error) {
-        console.warn("verify-monnify-payment returned error:", error);
-      }
+      const data = await verifyRes.json();
       if (data && data.verified) {
         setPendingMonnifyRef(null);
         setIsSuccessScreen(true);

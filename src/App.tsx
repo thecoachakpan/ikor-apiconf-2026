@@ -1297,7 +1297,18 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          startRecording(null, true);
+          (async () => {
+            let context: string | null = null;
+            if (contextAwarenessRef.current) {
+              try {
+                context = await invoke<string>("get_window_context_optimized", { needsFullPage: false });
+              } catch (e) {
+                console.warn("[Context] Failed to get active window context:", e);
+              }
+            }
+            windowContextRef.current = context;
+            startRecording(windowContextRef.current, true);
+          })();
         } else if (id === "scribe") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1310,7 +1321,18 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          startRecording(windowContextRef.current, false);
+          (async () => {
+            let context: string | null = null;
+            if (contextAwarenessRef.current) {
+              try {
+                context = await invoke<string>("get_window_context_optimized", { needsFullPage: false });
+              } catch (e) {
+                console.warn("[Context] Failed to get active window context:", e);
+              }
+            }
+            windowContextRef.current = context;
+            startRecording(windowContextRef.current, false);
+          })();
         } else if (id === "mcp") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1538,10 +1560,12 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           const volumes = Array.from({ length: WAVE_LINES }).map((_, i) => {
             const dist = Math.abs(i - center);
             const cleanVal = currentMicVolumeRef.current;
-            const processedVal = Math.min(10, (cleanVal / 100) * 12);
+            // Native RMS volumes range from ~2.5 (silence/quiet) to 25+ (speaking)
+            // Scaling (cleanVal / 15) * 10 maps speaking volumes smoothly between 3px and 12px bar heights
+            const scaled = Math.min(12, Math.max(3, (cleanVal / 15) * 10));
 
-            const multiplier = 1 - (dist * 0.22);
-            return Math.max(SILENCE_HEIGHT, processedVal * multiplier);
+            const multiplier = 1 - (dist * 0.18);
+            return Math.max(SILENCE_HEIGHT, scaled * multiplier);
           });
           setAudioData(volumes);
         }
