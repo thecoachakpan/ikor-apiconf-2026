@@ -8,6 +8,9 @@ import { Wand2, Check, Ban, Loader2, CreditCard, Info } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { supabase } from "../lib/supabaseClient";
 
+const SUPABASE_URL = "https://njjcvlmjhnjycdogxszl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
+
 interface Revision {
   command: string;
   response: string;
@@ -134,20 +137,28 @@ export default function ApprovalPanel() {
 
     try {
       if (mappedName === "monnify_initiate_payment") {
-        // Use Sayikor's platform credentials via Supabase Edge Function
-        const { data, error } = await supabase.functions.invoke("initialize-monnify-payment", {
-          body: {
+        // Use direct fetch to bypass Supabase SDK session issues in isolated Tauri popup window
+        const edgeResponse = await fetch(`${SUPABASE_URL}/functions/v1/initialize-monnify-payment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
             amount: finalArgs.amount,
             customerEmail: finalArgs.customerEmail || sessionUser?.email || "user@example.com",
             customerName: finalArgs.customerName || sessionUser?.name || "Ikor User",
             reference: finalArgs.paymentReference,
             paymentDescription: finalArgs.paymentDescription || "Ikor Word Top-up"
-          }
+          })
         });
 
-        if (error || !data || !data.checkoutUrl) {
-          console.error("Initialize payment error from edge function:", error || data);
-          throw new Error(data?.error || "Failed to initialize payment via Sayikor payment service.");
+        const data = await edgeResponse.json();
+
+        if (!edgeResponse.ok || !data.checkoutUrl) {
+          console.error("Initialize payment error from edge function:", data);
+          throw new Error(data?.error || `Payment service error (${edgeResponse.status})`);
         }
 
         const checkoutUrl = data.checkoutUrl;
@@ -204,7 +215,8 @@ export default function ApprovalPanel() {
     } catch (err) {
       console.error("Monnify MCP Tool Error:", err);
       setIsCallingMcp(false);
-      setMcpError(typeof err === "string" ? err : JSON.stringify(err));
+      const errMsg = err instanceof Error ? err.message : (typeof err === "string" ? err : JSON.stringify(err));
+      setMcpError(errMsg || "An unexpected error occurred. Please try again.");
     }
   };
 
