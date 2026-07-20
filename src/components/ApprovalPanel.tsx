@@ -118,8 +118,9 @@ export default function ApprovalPanel() {
 
     // Inject arguments for monnify_initiate_payment
     if (mappedName === "monnify_initiate_payment") {
-      // Always generate a fresh unique payment reference to prevent Monnify "Duplicate payment reference" error
-      finalArgs.paymentReference = "MONNIFY-" + Date.now() + "-" + Math.floor(100000 + Math.random() * 900000);
+      if (!finalArgs.paymentReference) {
+        finalArgs.paymentReference = "MONNIFY-" + Date.now() + "-" + Math.floor(1000 + Math.random() * 9000);
+      }
       if (!finalArgs.customerEmail && sessionUser?.email) {
         finalArgs.customerEmail = sessionUser.email;
       }
@@ -146,19 +147,7 @@ export default function ApprovalPanel() {
 
         if (error || !data || !data.checkoutUrl) {
           console.error("Initialize payment error from edge function:", error || data);
-          // Extract the best error message from the Supabase response
-          let edgeFnMsg = "";
-          if (typeof error === "object" && error !== null) {
-            // Supabase FunctionsHttpError / FunctionsRelayError / FunctionsFetchError
-            edgeFnMsg = error.message || "";
-            if (!edgeFnMsg && typeof error.context === "object" && error.context) {
-              edgeFnMsg = error.context.message || error.context.error || "";
-            }
-          }
-          if (!edgeFnMsg && data && typeof data === "object") {
-            edgeFnMsg = data.error || data.message || "";
-          }
-          throw new Error(edgeFnMsg || "Failed to initialize payment via Sayikor payment service.");
+          throw new Error(data?.error || "Failed to initialize payment via Sayikor payment service.");
         }
 
         const checkoutUrl = data.checkoutUrl;
@@ -215,15 +204,7 @@ export default function ApprovalPanel() {
     } catch (err) {
       console.error("Monnify MCP Tool Error:", err);
       setIsCallingMcp(false);
-      let errMsg = "";
-      if (typeof err === "string") {
-        errMsg = err;
-      } else if (err instanceof Error) {
-        errMsg = err.message || String(err);
-      } else if (typeof err === "object" && err !== null) {
-        errMsg = (err as any).message || (err as any).context?.message || (err as any).error || String(err);
-      }
-      setMcpError(errMsg || "An unexpected error occurred. Please try again.");
+      setMcpError(typeof err === "string" ? err : JSON.stringify(err));
     }
   };
 

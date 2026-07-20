@@ -37,7 +37,7 @@ serve(async (req) => {
     if (!loginResponse.ok) {
       const loginErr = await loginResponse.text()
       console.error("Monnify auth login failed:", loginErr)
-      return new Response(JSON.stringify({ error: `Monnify Auth Error: ${loginErr}` }), {
+      return new Response(JSON.stringify({ error: "Failed to authenticate with Monnify" }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -53,8 +53,6 @@ serve(async (req) => {
       })
     }
 
-    const paymentRef = reference || ("MONNIFY-" + Date.now() + "-" + Math.floor(100000 + Math.random() * 900000));
-
     // 2. Initialize Transaction
     const initResponse = await fetch(`${baseUrl}/api/v1/merchant/transactions/init-transaction`, {
       method: "POST",
@@ -66,18 +64,18 @@ serve(async (req) => {
         amount,
         customerName: customerName || "Ikor User",
         customerEmail: customerEmail || "user@example.com",
-        paymentReference: paymentRef,
+        paymentReference: reference,
         paymentDescription: paymentDescription || "Ikor Word Top-up",
         currencyCode: "NGN",
         contractCode,
-        redirectUrl: "https://sayikor.vercel.app/payment-success" // Redirect page on Vercel domain
+        redirectUrl: "https://sayikor.vercel.app/payment-success" // Redirect page on your Vercel domain
       })
     })
 
     if (!initResponse.ok) {
       const initErr = await initResponse.text()
       console.error("Monnify init-transaction failed:", initErr)
-      return new Response(JSON.stringify({ error: `Monnify Init Error: ${initErr}` }), {
+      return new Response(JSON.stringify({ error: "Failed to initialize Monnify transaction" }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
