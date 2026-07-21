@@ -146,7 +146,7 @@ Translates spoken intent into structured financial operations using the Monnify 
 1. Open the Ikor dashboard or focus your cursor on any app
 2. **Hold `Ctrl + Shift + S`** and speak a top-up command:
    - *“Top up my wallet with 1,000 Naira.”*
-   - *“Add 3000 Naira to my word balance.”*
+   - *“Add 3000 Naira worth of words to my word balance.”*
 3. **Release the keys.**
 4. Instead of typing, the **Approval Panel / MCP Confirmation Modal** will pop up on your screen.
 5. Review the payload of the API call. Click **Approve** or press **Enter** on your keyboard to open the Monnify sandbox checkout page, or **Cancel** to abort.
