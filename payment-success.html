@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - Ikor</title>
+  <!-- Google Fonts: Inter & Newsreader -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f2f0e4;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --green-50: #f0fdf4;
+      --green-100: #dcfce7;
+      --green-500: #22c55e;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-serif: 'Newsreader', Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Radial green glow background overlay */
+    .glow-overlay {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+      filter: blur(48px);
+      background: radial-gradient(circle, rgba(22, 163, 74, 0.15) 0%, rgba(242, 240, 228, 0) 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .success-card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 32px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      animation: springUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes springUp {
+      0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.96);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Checkmark Circle (Matching React design system: 80px outer, 48px inner) */
+    .icon-outer {
+      width: 80px;
+      height: 80px;
+      background-color: var(--green-50);
+      border: 2px solid var(--green-100);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 32px;
+      position: relative;
+    }
+
+    .icon-inner {
+      width: 48px;
+      height: 48px;
+      background-color: var(--green-500);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+    }
+
+    @keyframes popIn {
+      0% {
+        transform: scale(0);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .checkmark-svg {
+      width: 24px;
+      height: 24px;
+      stroke: #ffffff;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .card-title {
+      font-family: var(--font-serif);
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    .card-description {
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.625;
+      margin: 0 auto 32px;
+      max-width: 360px;
+    }
+
+    /* Dynamic Payment Reference Box */
+    .reference-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+
+    .reference-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .reference-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--text-main);
+      letter-spacing: 0.05em;
+      -webkit-user-select: all;
+      user-select: all;
+    }
+
+    /* Action Button */
+    .close-btn {
+      width: 100%;
+      background-color: #000000;
+      color: #ffffff;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .close-btn:hover {
+      background-color: #262626;
+    }
+
+    .close-btn:active {
+      transform: scale(0.98);
+    }
+
+    .close-hint {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #9ca3af;
+      margin-top: 16px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-overlay"></div>
+
+  <div class="success-card">
+    <div class="icon-outer">
+      <div class="icon-inner">
+        <svg class="checkmark-svg" viewBox="0 0 24 24">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+    </div>
+
+    <h1 class="card-title">Payment Successful</h1>
+    <p class="card-description">Your payment has been received and processed. You can now close this window and return to the Ikor desktop app to finish updating your balance.</p>
+
+    <div class="reference-box" id="ref-box" style="display: none;">
+      <span class="reference-label">Payment Reference</span>
+      <span class="reference-value" id="ref-value"></span>
+    </div>
+
+    <button type="button" onclick="handleCloseTab()" class="close-btn">Close Tab</button>
+    <span class="close-hint">YOU CAN SAFELY CLOSE THIS PAGE AT ANY TIME.</span>
+  </div>
+
+  <script>
+    (function() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const ref = urlParams.get('paymentReference') || urlParams.get('transactionReference');
+        if (ref && ref.trim().length > 0) {
+          document.getElementById('ref-value').textContent = ref.trim();
+          document.getElementById('ref-box').style.display = 'flex';
+        } else {
+          window.location.replace('/');
+        }
+      } catch (e) {
+        console.warn("Could not parse transaction reference:", e);
+        window.location.replace('/');
+      }
+    })();
+
+    function handleCloseTab() {
+      try {
+        window.close();
+      } catch (e) {
+        console.log("window.close() restricted:", e);
+      }
+      setTimeout(function() {
+        window.location.href = 'https://ikor-apiconf.vercel.app';
+      }, 150);
+    }
+  </script>
+</body>
+</html>
