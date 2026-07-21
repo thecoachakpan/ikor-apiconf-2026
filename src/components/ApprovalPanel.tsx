@@ -223,6 +223,37 @@ export default function ApprovalPanel() {
         });
 
         setIsCallingMcp(false);
+
+        // For invoice creation, extract checkoutUrl/invoiceUrl and open in browser
+        if (mappedName === "monnify_create_invoice") {
+          try {
+            const parsed = typeof res === "string" ? JSON.parse(res) : res;
+            // MCP result format: { content: [{ type: "text", text: "..." }] }
+            const textContent = parsed?.content?.[0]?.text;
+            const invoiceData = textContent ? JSON.parse(textContent) : parsed;
+            const checkoutUrl = invoiceData?.checkoutUrl || invoiceData?.invoiceUrl;
+
+            if (checkoutUrl) {
+              // Paste the invoice URL directly into the user's active text area
+              // (e.g. chat window, email composer) via the Rust clipboard+paste mechanism
+              stopZOrderLoop();
+              await invoke("set_approval_mode", { text: checkoutUrl });
+              if (navigator.clipboard) await navigator.clipboard.writeText(checkoutUrl);
+
+              setMcpTransaction(null);
+              setRevisions([]);
+              setCurrentRevisionIndex(0);
+              const win = getCurrentWindow();
+              await win.hide();
+              await emit("approval-closed");
+              return;
+            }
+          } catch (parseErr) {
+            console.warn("Failed to parse invoice response for URL extraction:", parseErr);
+            // Fall through to show raw response in ScribePro panel
+          }
+        }
+
         setMcpTransaction(null);
 
         // Convert success to standard revision response so user can paste it
