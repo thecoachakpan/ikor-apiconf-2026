@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 
 export interface PipelineResult {
   text: string;
@@ -112,10 +113,20 @@ export class UltraFastStream {
     this.audioContext = new AudioContext({ sampleRate: 16000 });
     const source = this.audioContext.createMediaStreamSource(this.stream);
 
-    this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    this.scriptProcessor = this.audioContext.createScriptProcessor(2048, 1, 1);
     this.scriptProcessor.onaudioprocess = (e) => {
+      const channelData = e.inputBuffer.getChannelData(0);
+
+      // Calculate RMS volume for visualizer animation
+      let sum = 0;
+      for (let i = 0; i < channelData.length; i++) {
+        sum += channelData[i] * channelData[i];
+      }
+      const rms = Math.sqrt(sum / channelData.length);
+      const volume = Math.min(100, Math.max(0, rms * 500));
+      emit("mic_volume_update", volume).catch(() => {});
+
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        const channelData = e.inputBuffer.getChannelData(0);
         const pcm16 = new Int16Array(channelData.length);
         for (let i = 0; i < channelData.length; i++) {
           let s = Math.max(-1, Math.min(1, channelData[i]));
@@ -131,6 +142,7 @@ export class UltraFastStream {
   }
 
   async stop() {
+    emit("mic_volume_update", 0).catch(() => {});
     const asrEndTime = performance.now();
     const asrTimeMs = Math.round(asrEndTime - this.startTime);
 
