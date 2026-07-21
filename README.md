@@ -134,7 +134,6 @@ Provides accurate speech-to-text directly into any text input.
 Uses your active window's identity to format and style transcripts intelligently.
 1. Open **VS Code** (or a code editor) and focus on a code file, OR open **Slack** and focus on a message input.
 2. **Hold `Ctrl + Win`** and dictate your text:
-   - **In VS Code:** Say *"write a quicksort function in rust"* ➔ Ikor automatically detects you are in an IDE and formats the output into a syntax-highlighted Rust markdown code block.
    - **In Slack/Notion:** Say *"tag John Doe and set up a call for 8am. Oh no, schedule the call for 10am instead."* ➔ Ikor detects you are in Slack and auto-formats the mention to `@John Doe` instead of plain text, then applies your intent to schedule the call for 10am.
 
 ---
@@ -143,14 +142,13 @@ Uses your active window's identity to format and style transcripts intelligently
 Translates spoken intent into structured financial operations using the Monnify Sandbox.
 *Note: Voice to MCP currently works for Ikor users to top-up words in their wallets. You do NOT need to configure your own API keys in the MCP Server settings for this demo tier.*
 
-1. Focus your cursor on a text area.
-2. **Hold `Ctrl + Shift + S`** and speak a top-up or subscription command:
+1. Open the Ikor dashboard or focus your cursor on any app
+2. **Hold `Ctrl + Shift + S`** and speak a top-up command:
    - *“Top up my wallet with 5,000 Naira.”*
    - *“Add 2,500 Naira to my speech credit.”*
-   - *“I want to subscribe 10,000 Naira to upgrade my plan.”*
 3. **Release the keys.**
 4. Instead of typing, the **Approval Panel / MCP Confirmation Modal** will pop up on your screen.
-5. Review the payload of the API call. Click **Approve** to open the Monnify sandbox checkout page, or **Cancel** to abort.
+5. Review the payload of the API call. Click **Approve** or press **Enter** on your keyboard to open the Monnify sandbox checkout page, or **Cancel** to abort.
 
 ---
 
@@ -159,7 +157,8 @@ Translates spoken intent into structured financial operations using the Monnify 
 - **Tauri v2:** Rust-backed desktop client framework providing native OS access (Win32 APIs).
 - **React 19 + TypeScript:** Frontend library powering the overlay GUI.
 - **Tailwind 4:** Advanced utility-first styles for modern, high-performance UI designs.
-- **Groq API:** Groq Whisper Large V3 Turbo for ultra-low latency transcription and `openai/gpt-oss-120b` for intent routing.
+- **Deepgram API:** Deepgram Nova 3 Stream model for near-instant STT experience on Ultrafast speed mode.
+- **Groq API:** Groq Whisper Large V3 Turbo for ultra-low latency transcription on fast speed mode and `openai/gpt-oss-120b` for intent routing.
 - **Supabase:** Backend database, authentication, and secure payment Edge Functions.
 - **Monnify Sandbox:** Financial collection API (Checkout, Subaccounts, Mandates, Verification).
 - **Monnify MCP Server:** Local Node-based MCP server running Monnify tools.
@@ -210,7 +209,7 @@ For more details, see [SECURITY.md](SECURITY.md).
 ## ⚠️ Limitations
 
 - **Windows Native APIs:** Active application title checking and DPI scaling calculations utilize Windows Win32 APIs, making the full featureset exclusive to Windows.
-- **API Dependencies:** Dictation and ScribePro require an active internet connection to communicate with Groq/Gemini cloud endpoints. If offline, the application falls back to a local Whisper engine (which runs slower depending on local hardware capabilities).
+- **API Dependencies:** Dictation and ScribePro require an active internet connection to communicate with Deepgram or Groq cloud endpoints. If offline, the application falls back to a local Whisper engine (which runs slower depending on local hardware capabilities).
 - **Sandbox Environment:** Monnify transaction verification is simulated. Production deployments require a fully verified Monnify merchant profile and KYC.
 
 ---
