@@ -4,9 +4,10 @@ import { listen, emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { motion } from "framer-motion";
 import { load } from "@tauri-apps/plugin-store";
-import { Wand2, Check, Ban, Loader2, CreditCard, Info } from "lucide-react";
+import { Wand2, Check, Ban, Loader2, CreditCard, Info, FileText } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { supabase } from "../lib/supabaseClient";
+import { formatMonnifyExpiryDate } from "../lib/mcpClient";
 
 const SUPABASE_URL = "https://njjcvlmjhnjycdogxszl.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
@@ -25,6 +26,7 @@ interface McpTransaction {
 
 const TOOL_NAME_MAP: Record<string, string> = {
   "initiate_transaction": "monnify_initiate_payment",
+  "create_invoice": "monnify_create_invoice",
   "get_transaction_status": "monnify_get_transaction_status",
   "create_reserved_account": "monnify_reserve_account",
   "initiate_refund": "monnify_process_refund",
@@ -133,6 +135,27 @@ export default function ApprovalPanel() {
       if (!finalArgs.paymentDescription) {
         finalArgs.paymentDescription = "Ikor Word Top-up";
       }
+    } else if (mappedName === "monnify_create_invoice") {
+      if (!finalArgs.invoiceReference) {
+        finalArgs.invoiceReference = "INV-" + Date.now() + "-" + Math.floor(1000 + Math.random() * 9000);
+      }
+      if (!finalArgs.customerEmail && sessionUser?.email) {
+        finalArgs.customerEmail = sessionUser.email;
+      }
+      if (!finalArgs.customerEmail) {
+        finalArgs.customerEmail = "billing@apexltd.com";
+      }
+      if (!finalArgs.customerName) {
+        finalArgs.customerName = "Apex Ltd";
+      }
+      if (!finalArgs.description) {
+        finalArgs.description = "Supply of goods";
+      }
+      if (!finalArgs.expiryDate) {
+        const days = typeof finalArgs.expiryDays === "number" ? finalArgs.expiryDays : 7;
+        finalArgs.expiryDate = formatMonnifyExpiryDate(days);
+      }
+      delete finalArgs.expiryDays;
     }
 
     try {
@@ -485,6 +508,7 @@ export default function ApprovalPanel() {
 
   if (mcpTransaction) {
     const isTopUp = mcpTransaction.toolName === "monnify_initiate_payment";
+    const isInvoice = mcpTransaction.toolName === "monnify_create_invoice";
     const topUpAmount = mcpTransaction.args.amount || 0;
     const estWords = sessionUser ? calculateWordsForAmount(topUpAmount, sessionUser.plan || "Free Trial") : 0;
 
@@ -499,14 +523,14 @@ export default function ApprovalPanel() {
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#2a2a2a]">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center">
-                <CreditCard size={18} />
+                {isInvoice ? <FileText size={18} /> : <CreditCard size={18} />}
               </div>
               <div>
                 <h3 className="text-white font-semibold text-sm">
-                  {isTopUp ? "Confirm Wallet Top-up" : "Voice Transaction Required"}
+                  {isTopUp ? "Confirm Wallet Top-up" : isInvoice ? "Confirm Merchant Invoice Creation" : "Voice Transaction Required"}
                 </h3>
                 <p className="text-[10px] text-white/40">
-                  {isTopUp ? "Monnify Secure Checkout" : "Verify Monnify MCP Tool Call"}
+                  {isTopUp ? "Monnify Secure Checkout" : isInvoice ? "Monnify Invoicing Service" : "Verify Monnify MCP Tool Call"}
                 </p>
               </div>
             </div>
@@ -602,6 +626,52 @@ export default function ApprovalPanel() {
                     </button>
                   </div>
                 )}
+              </div>
+            ) : isInvoice ? (
+              /* Merchant Invoice Creation Card */
+              <div className="space-y-3">
+                {/* Visual Invoice Amount Header */}
+                <div className="bg-gradient-to-r from-amber-500/10 via-[#262016] to-transparent border border-amber-500/10 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Invoice Amount</div>
+                  <div className="text-amber-500 text-3xl font-black mt-1">₦{(mcpTransaction.args.amount || 0).toLocaleString()}.00</div>
+                  <div className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full mt-2 border border-amber-500/20 flex items-center gap-1">
+                    <span>🗓️ Expires in {mcpTransaction.args.expiryDays || 7} Days</span>
+                  </div>
+                </div>
+
+                {/* Meta details */}
+                <div className="bg-[#222] rounded-xl p-3 space-y-2.5 border border-white/5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Customer / Client:</span>
+                    <span className="text-white font-medium">{mcpTransaction.args.customerName || "Apex Ltd"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Description:</span>
+                    <span className="text-white font-medium truncate max-w-[200px]" title={mcpTransaction.args.description}>
+                      {mcpTransaction.args.description || "Supply of goods"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Client Email:</span>
+                    <span className="text-white font-medium truncate max-w-[200px]" title={mcpTransaction.args.customerEmail}>
+                      {mcpTransaction.args.customerEmail || sessionUser?.email || "billing@apexltd.com"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Payment Gateway:</span>
+                    <span className="text-white font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Monnify Invoice API
+                    </span>
+                  </div>
+                </div>
+
+                {/* Explanation */}
+                <div className="bg-amber-950/20 border border-amber-500/10 rounded-xl p-3 flex gap-2.5 items-start">
+                  <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-white/60 text-[10.5px] leading-relaxed">
+                    {mcpTransaction.explanation || `Create a ₦${(mcpTransaction.args.amount || 0).toLocaleString()} invoice for ${mcpTransaction.args.customerName || 'customer'}.`}
+                  </p>
+                </div>
               </div>
             ) : (
               /* Generic Transaction Details */

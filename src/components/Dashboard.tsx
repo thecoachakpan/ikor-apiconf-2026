@@ -541,7 +541,7 @@ export default function Dashboard(_props: DashboardProps) {
         <div className="flex-1 overflow-y-auto p-8 w-full custom-scrollbar">
           {activeSection === "Home" && (
             <div className={`mx-auto w-full transition-all duration-300 relative ${isMaximized ? 'max-w-full px-8' : 'max-w-5xl'}`}>
-              <header className="mb-8 font-sans flex items-center justify-between">
+              <header className="mb-6 font-sans flex items-center justify-between">
                 <h1 className="text-xl font-bold flex items-center gap-3">
                   Hold 
                   <span className="flex gap-1">
@@ -558,6 +558,34 @@ export default function Dashboard(_props: DashboardProps) {
                   <Share size={14} className="text-red-500" />
                 </button>
               </header>
+
+              {/* Voice Command Suggestions Banner */}
+              <div className="mb-6 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-[24px] p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-2.5 py-1 bg-amber-500 text-white text-xs font-bold rounded-lg uppercase tracking-wider">
+                    ⚡ Voice to MCP Commands
+                  </span>
+                  <span className="text-xs text-gray-500 font-medium">Try speaking these commands while holding Ctrl + Alt</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-amber-500/10 shadow-xs flex flex-col justify-between">
+                    <div className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1">
+                      <span>🏪 Merchant Invoicing</span>
+                    </div>
+                    <p className="text-xs font-mono text-amber-700 font-medium bg-amber-50 rounded-lg p-2 border border-amber-200/50">
+                      &ldquo;Create a ₦150,000 invoice for Apex Ltd for supply of goods, expiring in 5 days&rdquo;
+                    </p>
+                  </div>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-amber-500/10 shadow-xs flex flex-col justify-between">
+                    <div className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1">
+                      <span>💳 Customer Wallet Top-up</span>
+                    </div>
+                    <p className="text-xs font-mono text-amber-700 font-medium bg-amber-50 rounded-lg p-2 border border-amber-200/50">
+                      &ldquo;Top up my wallet with ₦5,000&rdquo;
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-12">
                 <div 

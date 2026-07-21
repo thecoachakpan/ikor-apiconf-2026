@@ -36,6 +36,16 @@ The Monnify MCP server supports the following tool categories and actions:
    - "refundAmount" (number)
    - "refundReason" (string)
 
+── INVOICING & MERCHANT BILLING ──
+5. "create_invoice" - To create and issue a payment invoice with an amount and expiration date for a customer or business.
+   Required arguments:
+   - "amount" (number)
+   - "customerName" (string)
+   - "description" (string)
+   Optional arguments:
+   - "customerEmail" (string, default to "${resolvedEmail}" if not specified)
+   - "expiryDays" (number, default to 7 if not specified, e.g. 5 for 5 days)
+
 ── DIRECT DEBIT ──
 5. "create_direct_debit_mandate" - To set up a recurring debit mandate on a customer's bank account.
    Required arguments:
@@ -109,4 +119,17 @@ You must return ONLY the raw JSON object. Do not include markdown code block for
   }
 
   return { isMcpAction: false };
+}
+
+export function formatMonnifyExpiryDate(days: number = 7): string {
+  const d = new Date();
+  d.setDate(d.getDate() + (days || 7));
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  const seconds = pad(d.getSeconds());
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
