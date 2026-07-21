@@ -1783,8 +1783,12 @@ pub fn run() {
                                     || shortcut.id == "scribe"
                                     || shortcut.id == "mcp"
                                 {
-                                    // Capture window context immediately while target app is active & focused
-                                    crate::scribe::capture_active_context_now();
+                                    // Capture window context in a background thread so the
+                                    // clipboard Ctrl+C simulation doesn't interfere with
+                                    // the hotkey polling loop's GetAsyncKeyState checks.
+                                    std::thread::spawn(|| {
+                                        crate::scribe::capture_active_context_now();
+                                    });
                                 }
                                 let _ = app_handle.emit_to(
                                     "bubble",
