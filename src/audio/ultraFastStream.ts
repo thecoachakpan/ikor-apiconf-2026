@@ -207,7 +207,7 @@ export class UltraFastStream {
       }
     }
 
-    // 4. Polish with Groq (gpt-oss-120b) ➔ Gemini (gemini-2.5-flash-lite) LLM Fallback
+    // 4. Polish with Groq (gpt-oss-120b) ➔ Gemini (gemini-3.1-flash-lite) LLM Fallback
     const llmStartTime = performance.now();
 
     let polishedText = rawAsrText;

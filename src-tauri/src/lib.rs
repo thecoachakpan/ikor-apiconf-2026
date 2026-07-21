@@ -1119,7 +1119,7 @@ Raw transcribed text: {}", dictation_ctx, terms_section, shortcuts_section, raw_
     };
 
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={}",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={}",
         api_key
     );
 
@@ -1192,7 +1192,7 @@ async fn polish_with_llm_fallback(
         }
     }
 
-    // 2. Fallback LLM: Gemini (gemini-2.5-flash-lite)
+    // 2. Fallback LLM: Gemini (gemini-3.1-flash-lite)
     if let Some(ref gem_key) = gemini_api_key {
         if !gem_key.trim().is_empty() {
             if let Ok(res) = polish_gemini_cloud(
@@ -1570,7 +1570,7 @@ async fn process_audio_pipeline(
     if !asr_success && !gemini_key.is_empty() {
         println!("Falling back to Gemini for ASR...");
         let asr_start = Instant::now();
-        let gemini_url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={}", gemini_key);
+        let gemini_url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={}", gemini_key);
 
         let payload = serde_json::json!({
             "contents": [{
@@ -1637,7 +1637,7 @@ async fn process_audio_pipeline(
     if !llm_success && !gemini_key.is_empty() {
         println!("Falling back to Gemini for Polishing...");
         let llm_start = Instant::now();
-        let gemini_url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={}", gemini_key);
+        let gemini_url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={}", gemini_key);
 
         let prompt = format!("Correct any minor spelling or transcription errors in the following text, and add appropriate punctuation marks. Do NOT add any extra commentary or introductory text. Return only the final polished text.\n\nText: {}", asr_text);
 
