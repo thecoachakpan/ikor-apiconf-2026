@@ -157,7 +157,7 @@ export default function ApprovalPanel() {
         finalArgs.expiryDate = formatMonnifyExpiryDate(days);
       }
       if (!finalArgs.redirectUrl) {
-        finalArgs.redirectUrl = "https://sayikor.vercel.app/payment-success";
+        finalArgs.redirectUrl = "https://ikor-apiconf.vercel.app/payment-success";
       }
       delete finalArgs.expiryDays;
     } else if (mappedName === "monnify_get_all_transactions") {
