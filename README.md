@@ -125,8 +125,9 @@ Provides accurate speech-to-text directly into any text input.
 1. Open any text editor (Notepad, VS Code, a browser search bar).
 2. Focus your cursor inside the text area.
 3. **Press and hold `Ctrl + Alt`** on your keyboard. The circular waveform overlay will appear on your screen.
-4. Dictate a sentence (e.g., *"I am running a voice payment app on my local machine and dictating perfectly."*).
-5. **Release the keys.** The app transcribes the audio and instantly pastes the text at your cursor.
+4. Ensure that your system mic icon shows or is active in the system tray area of your taskbar.
+5. Dictate a sentence (e.g., *"I am running a voice payment app on my local machine and dictating perfectly."*).
+6. **Release the keys.** The app transcribes the audio and instantly pastes the text at your cursor.
 
 ---
 
