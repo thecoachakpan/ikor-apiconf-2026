@@ -122,6 +122,8 @@ export class FastBatch {
         // Step 2: ASR (Phase 1)
         const asrStart = performance.now();
         let rawText = "";
+        let asrModel = "Groq Whisper V3 Turbo";
+
         try {
           rawText = await invoke<string>("transcribe_groq_cloud", { 
             apiKey: groqKey, 
@@ -129,7 +131,18 @@ export class FastBatch {
             customTerms: this.customTerms 
           });
         } catch (e) {
-          console.warn("FastBatch [Split]: Groq ASR failed:", e);
+          console.warn("FastBatch: Groq ASR failed/timed out after handshake. Falling back to Local Native Whisper...", e);
+          try {
+            rawText = await invoke<string>("finish_audio_stream", {
+              customTerms: this.customTerms,
+              windowContext: activeContext
+            });
+            if (rawText && rawText.trim()) {
+              asrModel = "Local Native Whisper (Fallback)";
+            }
+          } catch (nativeErr) {
+            console.error("FastBatch: Local Native Whisper fallback also failed:", nativeErr);
+          }
         }
         const asrTimeMs = performance.now() - asrStart;
 
@@ -148,20 +161,22 @@ export class FastBatch {
 
         // Step 3: LLM Polishing (Phase 2)
         const llmStart = performance.now();
-        let polishedText = rawText; // fallback to raw if LLM fails
-        let modelUsed = "None (Fallback)";
+        let polishedText = rawText;
+        let modelUsed = `${asrModel} (Raw)`;
+
         try {
-          polishedText = await invoke<string>("polish_groq_cloud", {
-            apiKey: groqKey,
+          polishedText = await invoke<string>("polish_with_llm_fallback", {
+            groqApiKey: groqKey || null,
+            geminiApiKey: geminiKey || null,
             rawText,
             windowContext: activeContext,
             isDictation: this.isDictation,
             customTerms: this.customTerms,
             customShortcuts: this.customShortcuts
           });
-          modelUsed = "Llama 3.3 70B (Groq)";
+          modelUsed = `${asrModel} + LLM (gpt-oss-120b / Gemini Fallback)`;
         } catch (e) {
-          console.warn("FastBatch [Split]: Groq LLM polish failed, using raw ASR text:", e);
+          console.warn("FastBatch [Split]: LLM polishing failed, using raw ASR text:", e);
         }
         const llmTimeMs = performance.now() - llmStart;
 

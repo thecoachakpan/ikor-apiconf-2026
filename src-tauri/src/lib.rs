@@ -983,35 +983,35 @@ async fn polish_groq_cloud(
         };
 
         format!("You are a context-aware AI assistant (Scribe).
-Your job is to read the context from the user's active screen and follow their dictated command to write a response or rewrite the text.
+Your job is to read the context from the user's active screen and follow their dictated command to write a response, rewrite text, or perform the requested action.
 Do NOT add any conversational filler like 'Here is the response' or 'Sure!'. Just return the final drafted text that will be pasted directly into the user's window.
-CRITICAL INSTRUCTION: Do NOT randomly insert the custom terms or shortcuts into your response to pad the content. Correct spelling of phonetically similar words, garbled/noisy speech, or incorrect transcriptions to match these terms exactly where they fit the context, and ONLY apply a shortcut if the user explicitly dictates its trigger.
-When writing responses or formatting text for collaboration/communication apps like Notion, Slack, WhatsApp, Teams, Discord, Gmail, LinkedIn, convert command mentions like 'at [Name]', 'tag [Name]', 'mention [Name]', or 'at sign [Name]' to '@[Name]' (e.g. 'at John' -> '@John').
+CRITICAL INSTRUCTION: Do NOT randomly insert custom terms or shortcuts to pad content. Correct spelling of phonetically similar words or garbled speech to match custom terms where appropriate, and apply shortcuts ONLY when explicitly dictated.
+If the user corrects themselves or changes their mind in their spoken command (e.g., 'Draft a meeting request for 8am, actually make it 10am'), resolve their intent and follow the final instruction.
+When writing responses or formatting text for collaboration/communication apps like Notion, Slack, WhatsApp, Teams, Discord, Gmail, LinkedIn, convert command mentions like 'at [Name]', 'tag [Name]', 'mention [Name]' to '@[Name]'.
 
 {}{}{}[USER COMMAND]:
 {}", ctx_section, terms_section, shortcuts_section, raw_text)
     } else {
         // Dictation Mode
         let dictation_ctx = if let Some(ctx) = window_context {
-            format!("\n[CONTEXT FROM SCREEN (Use to infer correct spelling of names/terms only)]:\n{}\n", ctx)
+            format!("\n[ACTIVE WINDOW & SCREEN CONTEXT]:\n{}\n", ctx)
         } else {
             String::new()
         };
 
-        format!("You are an expert keyboard transcription formatting assistant.
-Your job is to polish the following raw transcribed text.
+        format!("You are an expert context-aware transcription formatting assistant.
+Your job is to polish the following raw transcribed text while preserving the user's intended meaning.
 
 Follow these strict formatting rules:
-1. Fix any minor spelling, ASR transcription homophone errors, capitalization, and punctuation.
-2. Format keyboard shortcuts cleanly (e.g., convert 'control plus alt' to 'Ctrl + Alt', 'control c' to 'Ctrl + C', 'command' to 'Cmd').
-3. Convert dictation triggers like 'at [Name/Page/Time]', 'tag [Name]', 'mention [Name]', or 'at sign [Name]' to '@[Name/Page/Time]' (e.g. 'at John' becomes '@John', 'tag Sarah' becomes '@Sarah', 'at today' becomes '@today') when the active window context indicates a collaboration/comms/notetaking app (like Notion, Slack, WhatsApp, Teams, Discord, Gmail, LinkedIn) and it makes sense as a mention or tag.
-4. Format lists or step numbers cleanly if the user says something like 'number one' or 'number two' when starting steps or lists.
-5. Correct software/tech names (e.g., 'Grok' to 'Groq', 'Lama' to 'Llama').
-6. Format the content into typed paragraphs when necessary.
-7. Transcribe everything exactly as dictated without summarizing or answering questions (e.g., if the user says 'What is a noun? A noun is...', output exactly that).
-8. Do NOT add any conversational fluff, introductory remarks, or explanations.
-9. Return ONLY the final polished text itself.
-10. Format direct speech, dialogue, or spoken quotes by enclosing them in double quotes, preceded by a comma (e.g., convert 'I said to him what is your name' to 'I said to him, \"What is your name?\"'). Use grammatically correct formatting: capitalize the first letter inside the quotes, and place ending punctuation inside the quotes (e.g., \"Grace Academy.\").
+1. SMART DICTATION & SELF-CORRECTION: If the user corrects themselves mid-sentence, changes their mind, or makes a verbal slip (e.g., 'let's meet by 8am, or no let's meet by 10am instead', 'send email to John, wait send to Sarah'), detect the final intended thought and output ONLY the resolved final text ('Let's meet by 10am instead'). Remove speech hesitations, false starts, and filler words (e.g., 'umm', 'uh', 'like').
+2. FIX ERRORS: Fix any minor spelling, ASR homophone errors, capitalization, and punctuation.
+3. CONTEXT & MENTIONS: Use active window context to adapt tone and formatting. Convert dictation triggers like 'at [Name/Page/Time]', 'tag [Name]', 'mention [Name]', or 'at sign [Name]' to '@[Name/Page/Time]' (e.g. 'at John' becomes '@John') when working in communication, social, or collaboration apps (Slack, WhatsApp, Teams, Discord, Gmail, Notion, LinkedIn).
+4. KEYBOARD SHORTCUTS: Format keyboard shortcuts cleanly (e.g., convert 'control plus alt' to 'Ctrl + Alt', 'command c' to 'Cmd + C').
+5. LISTS & STEPS: Format lists or step numbers cleanly if the user says something like 'number one' or 'number two' when starting steps or lists.
+6. TECH NAMES: Correct software/tech names (e.g., 'Grok' to 'Groq', 'Lama' to 'Llama').
+7. DO NOT SUMMARY/ANSWER: Do NOT answer questions or summarize unless requested (e.g., if the user dictates 'What is a noun? A noun is...', output the text as dictated, preserving any mid-sentence self-corrections).
+8. NO FILLER: Do NOT add any conversational fluff, introductory remarks, or explanations. Return ONLY the final polished text itself.
+9. QUOTES & DIALOGUE: Format direct speech or spoken quotes by enclosing them in double quotes with appropriate punctuation inside the quotes.
 {}{}{}
 Raw transcribed text: {}", dictation_ctx, terms_section, shortcuts_section, raw_text)
     };
@@ -1071,6 +1071,148 @@ Raw transcribed text: {}", dictation_ctx, terms_section, shortcuts_section, raw_
     } else {
         Err("No choices returned from Groq LLM".to_string())
     }
+}
+
+async fn polish_gemini_cloud(
+    api_key: String,
+    raw_text: String,
+    window_context: Option<String>,
+    is_dictation: bool,
+    custom_terms: Option<String>,
+    custom_shortcuts: Option<String>,
+) -> Result<String, String> {
+    println!("polish_gemini_cloud: Groq failed or timed out. Falling back to Gemini 2.5 Flash Lite...");
+
+    let client = reqwest::Client::new();
+    let terms_section = if let Some(terms) = custom_terms {
+        format!("\n[CUSTOM TERMS]:\n{}\n", terms)
+    } else {
+        String::new()
+    };
+    let shortcuts_section = if let Some(shortcuts) = custom_shortcuts {
+        format!("\n[CUSTOM SHORTCUTS]:\n{}\n", shortcuts)
+    } else {
+        String::new()
+    };
+
+    let system_prompt = if !is_dictation {
+        let ctx_section = if let Some(ctx) = window_context {
+            format!("[ACTIVE WINDOW CONTEXT]:\n{}\n", ctx)
+        } else {
+            String::new()
+        };
+        format!("You are a context-aware AI assistant (Scribe). Read screen context and follow command. Return ONLY final drafted text without fluff.\n{}{}{}[USER COMMAND]:\n{}", ctx_section, terms_section, shortcuts_section, raw_text)
+    } else {
+        let dictation_ctx = if let Some(ctx) = window_context {
+            format!("\n[ACTIVE WINDOW & SCREEN CONTEXT]:\n{}\n", ctx)
+        } else {
+            String::new()
+        };
+        format!("You are an expert context-aware transcription formatting assistant.
+Polish the raw transcribed text.
+1. SMART DICTATION & SELF-CORRECTION: If user corrects themselves mid-sentence (e.g., 'meet at 8am, no 10am instead'), output ONLY the final intended thought ('Let's meet by 10am instead'). Remove filler words (umm, uh).
+2. Fix spelling, homophones, capitalization, punctuation.
+3. Convert triggers like 'at John' to '@John' in messaging/notetaking apps.
+4. Return ONLY polished text. No fluff.
+{}{}{}
+Raw transcribed text: {}", dictation_ctx, terms_section, shortcuts_section, raw_text)
+    };
+
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={}",
+        api_key
+    );
+
+    let payload = serde_json::json!({
+        "contents": [
+            { "parts": [{ "text": system_prompt }] }
+        ]
+    });
+
+    let response = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Gemini network request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Gemini API returned error status {}", response.status()));
+    }
+
+    let data: serde_json::Value = response.json().await.map_err(|e| format!("Gemini JSON parse failed: {}", e))?;
+    if let Some(text) = data["candidates"][0]["content"]["parts"][0]["text"].as_str() {
+        println!("polish_gemini_cloud: Successfully polished text via Gemini!");
+        Ok(text.trim().to_string())
+    } else {
+        Err("No text returned from Gemini".to_string())
+    }
+}
+
+#[tauri::command]
+async fn polish_with_llm_fallback(
+    groq_api_key: Option<String>,
+    gemini_api_key: Option<String>,
+    raw_text: String,
+    window_context: Option<String>,
+    is_dictation: bool,
+    custom_terms: Option<String>,
+    custom_shortcuts: Option<String>,
+) -> Result<String, String> {
+    if raw_text.trim().is_empty() {
+        return Ok(String::new());
+    }
+
+    // 1. Primary LLM: Groq (openai/gpt-oss-120b) with 4-second timeout
+    if let Some(ref g_key) = groq_api_key {
+        if !g_key.trim().is_empty() {
+            let groq_future = polish_groq_cloud(
+                g_key.clone(),
+                raw_text.clone(),
+                window_context.clone(),
+                is_dictation,
+                custom_terms.clone(),
+                custom_shortcuts.clone(),
+            );
+
+            match tokio::time::timeout(std::time::Duration::from_secs(12), groq_future).await {
+                Ok(Ok(res)) => {
+                    if !res.trim().is_empty() {
+                        return Ok(res);
+                    }
+                }
+                Ok(Err(e)) => {
+                    println!("polish_with_llm_fallback: Groq LLM error ({}). Triggering Gemini fallback...", e);
+                }
+                Err(_) => {
+                    println!("polish_with_llm_fallback: Groq LLM timed out after 12s. Triggering Gemini fallback...");
+                }
+            }
+        }
+    }
+
+    // 2. Fallback LLM: Gemini (gemini-2.5-flash-lite)
+    if let Some(ref gem_key) = gemini_api_key {
+        if !gem_key.trim().is_empty() {
+            if let Ok(res) = polish_gemini_cloud(
+                gem_key.clone(),
+                raw_text.clone(),
+                window_context.clone(),
+                is_dictation,
+                custom_terms.clone(),
+                custom_shortcuts.clone(),
+            ).await {
+                if !res.trim().is_empty() {
+                    return Ok(res);
+                }
+            }
+        }
+    }
+
+    // 3. Ultimate Fallback: Return raw ASR text directly so dictation is never lost
+    println!("polish_with_llm_fallback: Both Groq and Gemini failed/timed out. Returning raw ASR text.");
+    Ok(raw_text)
 }
 
 #[tauri::command]
@@ -1592,6 +1734,7 @@ pub fn run() {
             transcribe_groq_cloud,
             transcribe_deepgram_cloud,
             polish_groq_cloud,
+            polish_with_llm_fallback,
             init_whisper_stream,
             append_audio_chunk,
             finish_audio_stream,

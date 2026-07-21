@@ -162,10 +162,36 @@ export class UltraFastStream {
       try { this.ws.close(); } catch (_) {}
     }
 
-    const rawAsrText = this.accumulatedText.trim();
+    let rawAsrText = this.accumulatedText.trim();
+    let asrModelUsed = "Deepgram Nova-3";
     console.log("⚡ Ultrafast [Deepgram Nova-3 STT Raw]:", rawAsrText);
 
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://njjcvlmjhnjycdogxszl.supabase.co";
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
+    const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+
+    // ⚡ ASR Fallback: If Deepgram Nova-3 fails, returns empty text, or errors out -> Fallback to Groq Whisper V3 Turbo
     if (!rawAsrText) {
+      console.warn("UltraFastStream: Deepgram Nova-3 produced no transcript or failed. Triggering Groq Whisper ASR fallback...");
+      try {
+        const groqKey = await invoke<string>("fetch_groq_key", { supabaseUrl, supabaseAnonKey });
+        if (groqKey) {
+          rawAsrText = await invoke<string>("transcribe_groq_cloud", {
+            apiKey: groqKey,
+            base64Wav: "",
+            customTerms: this.customTerms
+          });
+          if (rawAsrText && rawAsrText.trim()) {
+            asrModelUsed = "Groq Whisper V3 Turbo (Fallback)";
+            console.log("⚡ Ultrafast [Groq Whisper ASR Fallback Raw]:", rawAsrText);
+          }
+        }
+      } catch (fallbackAsrErr) {
+        console.warn("UltraFastStream: Groq Whisper ASR fallback also failed:", fallbackAsrErr);
+      }
+    }
+
+    if (!rawAsrText || !rawAsrText.trim()) {
       if (this.onTranscriptionComplete) {
         this.onTranscriptionComplete({ text: "", rawAsrText: null, telemetry: null });
       }
@@ -181,14 +207,11 @@ export class UltraFastStream {
       }
     }
 
-    // 4. Polish with Groq / Gemini LLM
+    // 4. Polish with Groq (gpt-oss-120b) ➔ Gemini (gemini-2.5-flash-lite) LLM Fallback
     const llmStartTime = performance.now();
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://njjcvlmjhnjycdogxszl.supabase.co";
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
-    const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
     let polishedText = rawAsrText;
-    let modelUsed = "Deepgram Nova-3 (Raw)";
+    let modelUsed = `${asrModelUsed} + Raw`;
 
     let activeContext = this.windowContext;
     if (!activeContext && this.contextAwareness) {
@@ -199,42 +222,20 @@ export class UltraFastStream {
       }
     }
 
-    // Attempt Groq LLM polishing
     try {
       const groqKey = await invoke<string>("fetch_groq_key", { supabaseUrl, supabaseAnonKey });
-      if (groqKey) {
-        polishedText = await invoke<string>("polish_groq_cloud", {
-          apiKey: groqKey,
-          rawText: rawAsrText,
-          windowContext: activeContext,
-          isDictation: this.isDictation,
-          customTerms: this.customTerms,
-          customShortcuts: this.customShortcuts
-        });
-        modelUsed = "Deepgram Nova-3 + Groq (gpt-oss-120b)";
-      }
-    } catch (groqErr) {
-      console.warn("UltraFastStream: Groq polishing failed, attempting Gemini fallback...", groqErr);
-      // Fallback to Gemini Flash Lite if available
-      if (geminiKey) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `Polish this transcript cleanly: ${rawAsrText}` }] }]
-            })
-          });
-          const data = await res.json();
-          const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (candidate) {
-            polishedText = candidate.trim();
-            modelUsed = "Deepgram Nova-3 + Gemini 2.5 Flash Lite";
-          }
-        } catch (geminiErr) {
-          console.error("UltraFastStream: Gemini fallback polishing also failed:", geminiErr);
-        }
-      }
+      polishedText = await invoke<string>("polish_with_llm_fallback", {
+        groqApiKey: groqKey || null,
+        geminiApiKey: geminiKey || null,
+        rawText: rawAsrText,
+        windowContext: activeContext,
+        isDictation: this.isDictation,
+        customTerms: this.customTerms,
+        customShortcuts: this.customShortcuts
+      });
+      modelUsed = `${asrModelUsed} + LLM (gpt-oss-120b / Gemini Fallback)`;
+    } catch (llmErr) {
+      console.warn("UltraFastStream: LLM polishing failed, using raw ASR text:", llmErr);
     }
 
     const llmTimeMs = Math.round(performance.now() - llmStartTime);

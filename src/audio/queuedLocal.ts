@@ -92,6 +92,31 @@ export class QueuedLocal {
         console.warn("Failed to load/apply text shortcuts in offline mode:", err);
       }
 
+      // If online, perform Groq LLM polishing (openai/gpt-oss-120b) with Gemini fallback for self-correction and context awareness
+      if (finalWords && finalWords.trim()) {
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://njjcvlmjhnjycdogxszl.supabase.co";
+          const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_-EeRA4ECq2CR3K6E052Z9Q_9-QBRPMk";
+          const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+          const groqKey = await invoke<string>("fetch_groq_key", { supabaseUrl, supabaseAnonKey });
+          
+          const polished = await invoke<string>("polish_with_llm_fallback", {
+            groqApiKey: groqKey || null,
+            geminiApiKey: geminiKey || null,
+            rawText: finalWords,
+            windowContext: (this.options?.contextAwareness !== false) ? (this.windowContext || null) : null,
+            isDictation: this.options?.isDictation !== false,
+            customTerms: this.options?.customTerms || null,
+            customShortcuts: this.options?.customShortcuts || null
+          });
+          if (polished && polished.trim()) {
+            finalWords = polished;
+          }
+        } catch (groqErr) {
+          console.warn("QueuedLocal: LLM polishing skipped or offline:", groqErr);
+        }
+      }
+
       // If in split scribe mode, trigger phase 1 (ASR completion)
       if (this.options?.splitPipeline && this.options?.onAsrComplete) {
         await this.options.onAsrComplete(finalWords);
