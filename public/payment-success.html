@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - Ikor</title>
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    /* Styling tokens matched to Sayikor Global Skill */
+    :root {
+      --bg-color: #f2f0e4;
+      --text-main: #1c1917;
+      --text-muted: #6b6661;
+      --green-accent: #16a34a;
+      --green-light: #f0fdf4;
+      --green-border: #dcfce7;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-serif: 'Newsreader', Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Subtle background glow elements for premium look */
+    .glow-overlay {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(22, 163, 74, 0.08) 0%, rgba(242, 240, 228, 0) 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .success-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(28, 25, 22, 0.06);
+      width: 100%;
+      max-w: 420px;
+      border-radius: 32px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(28, 25, 22, 0.04);
+      z-index: 2;
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Checkmark Animation */
+    .icon-container {
+      width: 72px;
+      height: 72px;
+      background-color: var(--green-light);
+      border: 2px solid var(--green-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      position: relative;
+    }
+
+    .checkmark-svg {
+      width: 32px;
+      height: 32px;
+      color: var(--green-accent);
+    }
+
+    .checkmark-path {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: drawCheck 0.8s ease-in-out forwards;
+      animation-delay: 0.2s;
+    }
+
+    @keyframes drawCheck {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      color: var(--text-muted);
+      font-size: 13.5px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .reference-box {
+      background: rgba(28, 25, 22, 0.03);
+      border: 1px solid rgba(28, 25, 22, 0.04);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      font-size: 12px;
+    }
+
+    .reference-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .reference-value {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: 0.05em;
+    }
+
+    .action-button {
+      display: block;
+      width: 100%;
+      background-color: var(--text-main);
+      color: #ffffff;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(28, 25, 22, 0.1);
+    }
+
+    .action-button:hover {
+      background-color: rgba(28, 25, 22, 0.9);
+      transform: translateY(-1px);
+    }
+
+    .action-button:active {
+      transform: translateY(0);
+    }
+
+    .close-hint {
+      display: block;
+      font-size: 10.5px;
+      color: var(--text-muted);
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-overlay"></div>
+
+  <div class="success-card">
+    <div class="icon-container">
+      <svg class="checkmark-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path class="checkmark-path" d="M20 6L9 17L4 12" />
+      </svg>
+    </div>
+
+    <h1>Payment Successful</h1>
+    <p>Your payment has been received and processed. You can now close this window and return to the Ikor desktop app to finish updating your balance.</p>
+
+    <div class="reference-box" id="ref-box" style="display: none;">
+      <span class="reference-label">Payment Reference</span>
+      <span class="reference-value" id="ref-value"></span>
+    </div>
+
+    <button onclick="window.close()" class="action-button">Close Tab</button>
+    <span class="close-hint">You can safely close this page at any time.</span>
+  </div>
+
+  <script>
+    // Extract paymentReference query parameter to display to the user
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = urlParams.get('paymentReference') || urlParams.get('transactionReference');
+      if (ref) {
+        document.getElementById('ref-value').textContent = ref;
+        document.getElementById('ref-box').style.display = 'flex';
+      }
+    } catch (e) {
+      console.warn("Could not parse transaction reference:", e);
+    }
+  </script>
+</body>
+</html>
