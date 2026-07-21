@@ -39,3 +39,7 @@ Thumbs.db
 # Backup files
 *.bak
 *~
+
+# Supabase temporary files
+supabase/.temp/
+

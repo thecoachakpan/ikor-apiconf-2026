@@ -22,7 +22,7 @@ export default function PaymentSuccessPage() {
   }, []);
 
   const handleCloseTab = () => {
-    window.location.href = "https://sayikor.vercel.app";
+    window.location.href = "https://ikor-apiconf.vercel.app";
   };
 
   return (
