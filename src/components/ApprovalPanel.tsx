@@ -155,6 +155,9 @@ export default function ApprovalPanel() {
         const days = typeof finalArgs.expiryDays === "number" ? finalArgs.expiryDays : 7;
         finalArgs.expiryDate = formatMonnifyExpiryDate(days);
       }
+      if (!finalArgs.redirectUrl) {
+        finalArgs.redirectUrl = "https://ikor-apiconf.vercel.app/payment-success";
+      }
       delete finalArgs.expiryDays;
     }
 
