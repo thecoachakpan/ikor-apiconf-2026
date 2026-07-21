@@ -567,13 +567,21 @@ export default function Dashboard(_props: DashboardProps) {
                   </span>
                   <span className="text-xs text-gray-500 font-medium">Try speaking these commands while holding Ctrl + Alt</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-amber-500/10 shadow-xs flex flex-col justify-between">
                     <div className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1">
                       <span>🏪 Merchant Invoicing</span>
                     </div>
                     <p className="text-xs font-mono text-amber-700 font-medium bg-amber-50 rounded-lg p-2 border border-amber-200/50">
                       &ldquo;Create a ₦150,000 invoice for Apex Ltd for supply of goods, expiring in 5 days&rdquo;
+                    </p>
+                  </div>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-amber-500/10 shadow-xs flex flex-col justify-between">
+                    <div className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1">
+                      <span>📊 Real-Time Sales Audit</span>
+                    </div>
+                    <p className="text-xs font-mono text-amber-700 font-medium bg-amber-50 rounded-lg p-2 border border-amber-200/50">
+                      &ldquo;What is my total sales revenue collected today via bank transfer?&rdquo;
                     </p>
                   </div>
                   <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-amber-500/10 shadow-xs flex flex-col justify-between">

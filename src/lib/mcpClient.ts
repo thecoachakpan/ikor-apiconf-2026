@@ -71,9 +71,14 @@ The Monnify MCP server supports the following tool categories and actions:
    Required arguments:
    - "nin" (string)
 
-── UTILITIES ──
+── UTILITIES & REPORTING ──
 10. "get_banks" - To list all supported banks and their codes.
     No arguments required.
+11. "get_all_transactions" - To query, audit, or summarize sales revenue, payments collected, or store transaction history (e.g., "What is my total sales revenue collected today via bank transfer?").
+    Optional arguments:
+    - "paymentStatus" (string, e.g. "PAID" for completed sales)
+    - "paymentMethod" (string, e.g. "ACCOUNT_TRANSFER", "CARD", "USSD")
+    - "timeframe" (string, e.g. "today", "yesterday", "this_week")
 
 Analyze the user's input: "${text}"
 

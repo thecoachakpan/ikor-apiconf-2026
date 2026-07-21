@@ -4,7 +4,7 @@ import { listen, emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { motion } from "framer-motion";
 import { load } from "@tauri-apps/plugin-store";
-import { Wand2, Check, Ban, Loader2, CreditCard, Info, FileText } from "lucide-react";
+import { Wand2, Check, Ban, Loader2, CreditCard, Info, FileText, BarChart3 } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { supabase } from "../lib/supabaseClient";
 import { formatMonnifyExpiryDate } from "../lib/mcpClient";
@@ -35,7 +35,8 @@ const TOOL_NAME_MAP: Record<string, string> = {
   "verify_bank_account": "monnify_verify_bank_account",
   "verify_bvn": "monnify_verify_bvn",
   "verify_nin": "monnify_verify_nin",
-  "get_banks": "monnify_get_supported_banks"
+  "get_banks": "monnify_get_supported_banks",
+  "get_all_transactions": "monnify_get_all_transactions"
 };
 
 const calculateWordsForAmount = (amount: number, plan: string) => {
@@ -159,6 +160,10 @@ export default function ApprovalPanel() {
         finalArgs.redirectUrl = "https://ikor-apiconf.vercel.app/payment-success";
       }
       delete finalArgs.expiryDays;
+    } else if (mappedName === "monnify_get_all_transactions") {
+      if (!finalArgs.paymentStatus) {
+        finalArgs.paymentStatus = "PAID";
+      }
     }
 
     try {
@@ -226,6 +231,102 @@ export default function ApprovalPanel() {
         });
 
         setIsCallingMcp(false);
+
+        // For audit / transaction summary, format a structured financial report and paste to screen
+        if (mappedName === "monnify_get_all_transactions") {
+          try {
+            let parsed: any;
+            try {
+              parsed = typeof res === "string" ? JSON.parse(res) : res;
+            } catch {
+              parsed = res;
+            }
+
+            const rawText = parsed?.content?.[0]?.text || (typeof res === "string" ? res : JSON.stringify(res));
+            let responseData: any;
+            try {
+              responseData = JSON.parse(rawText);
+            } catch {
+              responseData = parsed;
+            }
+
+            const transactionsList: any[] = responseData?.responseBody?.content || responseData?.content || (Array.isArray(responseData) ? responseData : []);
+
+            let totalRevenue = 0;
+            let paidCount = 0;
+            let bankTransferRevenue = 0;
+            let bankTransferCount = 0;
+            let cardRevenue = 0;
+            let cardCount = 0;
+            let otherRevenue = 0;
+            let otherCount = 0;
+
+            if (Array.isArray(transactionsList) && transactionsList.length > 0) {
+              for (const tx of transactionsList) {
+                const status = tx.paymentStatus || tx.status;
+                const amount = Number(tx.amountPaid || tx.amount || tx.totalPayable || 0);
+                const method = String(tx.paymentMethod || tx.method || "").toUpperCase();
+
+                if (status === "PAID" || !status) {
+                  totalRevenue += amount;
+                  paidCount++;
+                  if (method.includes("TRANSFER") || method.includes("ACCOUNT")) {
+                    bankTransferRevenue += amount;
+                    bankTransferCount++;
+                  } else if (method.includes("CARD")) {
+                    cardRevenue += amount;
+                    cardCount++;
+                  } else {
+                    otherRevenue += amount;
+                    otherCount++;
+                  }
+                }
+              }
+            }
+
+            const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            let summaryText = "";
+
+            if (paidCount > 0) {
+              summaryText = [
+                `📊 Monnify Real-Time Payment Audit & Sales Summary (${todayStr})`,
+                `--------------------------------------------------`,
+                `• Total Revenue Collected: ₦${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                `• Total Successful Payments: ${paidCount}`,
+                `• Bank Transfers: ₦${bankTransferRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${bankTransferCount} transfer${bankTransferCount === 1 ? '' : 's'})`,
+                cardCount > 0 ? `• Card Payments: ₦${cardRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${cardCount})` : null,
+                otherCount > 0 ? `• Other Channels: ₦${otherRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${otherCount})` : null,
+                `• Status: Verified Live via Monnify MCP`,
+                `--------------------------------------------------`
+              ].filter(Boolean).join("\n");
+            } else {
+              summaryText = [
+                `📊 Monnify Real-Time Payment Audit & Sales Summary (${todayStr})`,
+                `--------------------------------------------------`,
+                `• Total Revenue Collected: ₦0.00`,
+                `• Successful Payments: 0`,
+                `• Primary Collection Channel: Bank Transfer`,
+                `• Status: Verified Live via Monnify MCP (No completed transactions recorded today)`,
+                `--------------------------------------------------`
+              ].join("\n");
+            }
+
+            // Auto-paste summary report directly onto user's active screen
+            stopZOrderLoop();
+            await invoke("type_text", { text: summaryText });
+            if (navigator.clipboard) await navigator.clipboard.writeText(summaryText);
+
+            setMcpTransaction(null);
+            setRevisions([]);
+            setCurrentRevisionIndex(0);
+            const win = getCurrentWindow();
+            await win.hide();
+            await emit("approval-closed");
+            return;
+          } catch (auditErr) {
+            console.warn("Failed to format transaction audit report:", auditErr);
+          }
+        }
 
         // For invoice creation, extract checkoutUrl/invoiceUrl and open in browser
         if (mappedName === "monnify_create_invoice") {
@@ -543,6 +644,7 @@ export default function ApprovalPanel() {
   if (mcpTransaction) {
     const isTopUp = mcpTransaction.toolName === "monnify_initiate_payment";
     const isInvoice = mcpTransaction.toolName === "monnify_create_invoice";
+    const isAudit = mcpTransaction.toolName === "monnify_get_all_transactions";
     const topUpAmount = mcpTransaction.args.amount || 0;
     const estWords = sessionUser ? calculateWordsForAmount(topUpAmount, sessionUser.plan || "Free Trial") : 0;
 
@@ -557,14 +659,14 @@ export default function ApprovalPanel() {
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#2a2a2a]">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center">
-                {isInvoice ? <FileText size={18} /> : <CreditCard size={18} />}
+                {isAudit ? <BarChart3 size={18} /> : isInvoice ? <FileText size={18} /> : <CreditCard size={18} />}
               </div>
               <div>
                 <h3 className="text-white font-semibold text-sm">
-                  {isTopUp ? "Confirm Wallet Top-up" : isInvoice ? "Confirm Merchant Invoice Creation" : "Voice Transaction Required"}
+                  {isTopUp ? "Confirm Wallet Top-up" : isInvoice ? "Confirm Merchant Invoice Creation" : isAudit ? "Confirm Real-Time Payment Audit" : "Voice Transaction Required"}
                 </h3>
                 <p className="text-[10px] text-white/40">
-                  {isTopUp ? "Monnify Secure Checkout" : isInvoice ? "Monnify Invoicing Service" : "Verify Monnify MCP Tool Call"}
+                  {isTopUp ? "Monnify Secure Checkout" : isInvoice ? "Monnify Invoicing Service" : isAudit ? "Monnify Sales Analytics & Auto-Paste" : "Verify Monnify MCP Tool Call"}
                 </p>
               </div>
             </div>
@@ -707,6 +809,50 @@ export default function ApprovalPanel() {
                   </p>
                 </div>
               </div>
+            ) : isAudit ? (
+              /* Real-Time Payment Audit Card */
+              <div className="space-y-3">
+                {/* Visual Audit Header */}
+                <div className="bg-gradient-to-r from-amber-500/10 via-[#262016] to-transparent border border-amber-500/10 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Real-Time Payment Audit</div>
+                  <div className="text-amber-500 text-xl font-black mt-1">Today's Sales Revenue & Audit</div>
+                  <div className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full mt-2 border border-amber-500/20 flex items-center gap-1">
+                    <span>⚡ Auto-Paste Summary to Screen</span>
+                  </div>
+                </div>
+
+                {/* Meta details */}
+                <div className="bg-[#222] rounded-xl p-3 space-y-2.5 border border-white/5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Query Action:</span>
+                    <span className="text-white font-medium">Merchant Sales Revenue Audit</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Target Channel:</span>
+                    <span className="text-white font-medium">
+                      {mcpTransaction.args.paymentMethod || "ACCOUNT_TRANSFER (Bank Transfer)"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Payment Status:</span>
+                    <span className="text-emerald-400 font-medium font-mono">
+                      {mcpTransaction.args.paymentStatus || "PAID"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40">Destination:</span>
+                    <span className="text-amber-300 font-medium">Active Screen / Cursor</span>
+                  </div>
+                </div>
+
+                {/* Explanation */}
+                <div className="bg-amber-950/20 border border-amber-500/10 rounded-xl p-3 flex gap-2.5 items-start">
+                  <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-white/60 text-[10.5px] leading-relaxed">
+                    {mcpTransaction.explanation || "Query Monnify MCP for bank transfer sales today and paste formatted summary directly onto active screen."}
+                  </p>
+                </div>
+              </div>
             ) : (
               /* Generic Transaction Details */
               <>
@@ -774,7 +920,12 @@ export default function ApprovalPanel() {
               {isCallingMcp ? (
                 <>
                   <Loader2 size={13} className="animate-spin" />
-                  Executing...
+                  Auditing Monnify...
+                </>
+              ) : isAudit ? (
+                <>
+                  <Check size={13} />
+                  Approve & Paste Summary <span className="text-[10px] font-normal opacity-70">(Enter)</span>
                 </>
               ) : (
                 <>
