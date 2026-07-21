@@ -1,5 +1,6 @@
 use crate::{get_clipboard, get_enigo};
 use enigo::{Direction, Key, Keyboard};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -10,10 +11,13 @@ use uiautomation::UIAutomation;
 lazy_static::lazy_static! {
     static ref LAST_CAPTURED_CONTEXT: Mutex<Option<(String, Instant)>> = Mutex::new(None);
 }
+static CAPTURE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 
 /// Capture active context immediately on hotkey press while user's target app is focused
 pub fn capture_active_context_now() {
-    if let Ok(ctx) = raw_get_window_context_optimized(false) {
+    CAPTURE_IN_PROGRESS.store(true, Ordering::SeqCst);
+    let result = raw_get_window_context_optimized(false);
+    if let Ok(ctx) = result {
         if !ctx.trim().is_empty() {
             println!("[Scribe] Captured context on hotkey press: {} chars", ctx.len());
             if let Ok(mut guard) = LAST_CAPTURED_CONTEXT.lock() {
@@ -21,6 +25,7 @@ pub fn capture_active_context_now() {
             }
         }
     }
+    CAPTURE_IN_PROGRESS.store(false, Ordering::SeqCst);
 }
 
 /// Helper to simulate copy shortcuts and safely grab selection from clipboard when UI Automation fails
@@ -330,7 +335,17 @@ pub fn get_window_context() -> Result<String, String> {
 
 /// Optimized get_window_context_optimized with app-awareness and token reduction rules
 pub fn get_window_context_optimized(needs_full_page: bool) -> Result<String, String> {
-    // 1. If context was freshly captured at hotkey press down (within last 6 sec), return it immediately!
+    // 1. If a background capture is in progress, wait up to 600ms for it to finish
+    if CAPTURE_IN_PROGRESS.load(Ordering::SeqCst) {
+        for _ in 0..12 {
+            thread::sleep(Duration::from_millis(50));
+            if !CAPTURE_IN_PROGRESS.load(Ordering::SeqCst) {
+                break;
+            }
+        }
+    }
+
+    // 2. If context was freshly captured at hotkey press down (within last 6 sec), return it
     if let Ok(guard) = LAST_CAPTURED_CONTEXT.lock() {
         if let Some((ref text, timestamp)) = *guard {
             if timestamp.elapsed() < Duration::from_secs(6) && !text.trim().is_empty() {
@@ -343,7 +358,7 @@ pub fn get_window_context_optimized(needs_full_page: bool) -> Result<String, Str
         }
     }
 
-    // 2. Otherwise perform live capture
+    // 3. Otherwise perform live capture
     raw_get_window_context_optimized(needs_full_page)
 }
 
