@@ -1,8 +1,32 @@
 # Ikor — Agentic Voice-to-MCP Payment & Productivity Infrastructure
 
-Ikor is a windowless, lightweight speech overlay that lets you type anywhere on your screen using your voice, apply app-aware AI formatting (ScribePro), and execute financial operations via spoken commands (Voice to MCP) integrated with the **Monnify Sandbox API**.
+> **Ikor** is an AI-powered voice dictation and agentic writing desktop engine that integrates Monnify MCP to enable instant, human-in-the-loop voice payments and financial workflows directly from any app or chat.
 
 Built with **Tauri v2**, **React 19**, **TypeScript**, and **Tailwind 4**.
+
+---
+
+## 📌 Project Overview & Key Differentiators
+
+### 1. Project Description
+Ikor is an AI-powered voice dictation and agentic writing desktop engine that integrates Monnify MCP to enable instant, human-in-the-loop voice payments and financial workflows directly from any app or chat.
+
+### 2. Problem Statement
+Knowledge workers, developers, freelancers, and service teams lose high-friction hours daily switching between typing text, using disparate AI tools, and manually navigating payment portals or dashboards just to complete simple transactions or manage client billing. Existing voice technologies are limited to speech-to-text dictation without actionable workflow or payment capabilities, creating drop-offs and operational slowness across communication channels.
+
+### 3. Solution
+Ikor bridges voice AI and financial transactions through a multi-layered desktop application:
+
+* **Zero-Edit Voice Dictation:** System-wide hands-free typing powered by context awareness.
+* **Scribe Commands (Agentic Assistant):** Real-time text reformatting, refactoring, and tone adjustment via voice triggers.
+* **Voice-to-MCP Monnify Payments:** Voice command processing that triggers Model Context Protocol (MCP) tool calls, generating pre-filled payment approvals directly inside the desktop dashboard. Users confirm the intent with human-in-the-loop validation, completing instant top-ups or checkouts via Monnify's secure infrastructure.
+
+### 4. What Makes Our Project Unique?
+Ikor transforms voice from a passive input method into an actionable execution engine with safe payment guardrails. Key unique differentiators include:
+
+* **Human-in-the-Loop Security:** Blends natural language voice intent with explicit visual approval overlays before invoking financial transactions via Monnify.
+* **Universal System Integration:** Works globally across Windows applications (Slack, WhatsApp, IDEs, browser windows) without requiring native app context-switching.
+* **Monnify Infrastructure Scalability:** Leverages Monnify’s flexible SDK and MCP protocols to scale payments beyond wallet top-ups into context-aware merchant billing and API-level embedded checkout.
 
 ---
 
