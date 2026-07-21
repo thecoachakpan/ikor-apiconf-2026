@@ -222,7 +222,6 @@ export default function ApprovalPanel() {
 
   const handleRejectMcp = async () => {
     if (isCallingMcp || !mcpTransaction) return;
-    const fallbackText = mcpTransaction.rawText || mcpTransaction.explanation || "";
     
     stopZOrderLoop();
     mcpRawTextRef.current = null;
@@ -230,17 +229,10 @@ export default function ApprovalPanel() {
     setRevisions([]);
     setCurrentRevisionIndex(0);
     
+    await invoke("set_approval_mode", { text: null as string | null });
     const win = getCurrentWindow();
     await win.hide();
     await emit("approval-closed");
-    
-    setTimeout(async () => {
-      try {
-        await invoke("type_text", { text: fallbackText });
-      } catch (err) {
-        console.error("Failed to type fallback text:", err);
-      }
-    }, 150);
   };
 
   useEffect(() => {
@@ -361,20 +353,11 @@ export default function ApprovalPanel() {
         setRevisions([]);
         setCurrentRevisionIndex(0);
         
-        const fallbackText = mcpRawTextRef.current;
         mcpRawTextRef.current = null;
         setMcpTransaction(null);
+        await invoke("set_approval_mode", { text: null as string | null });
         await getCurrentWindow().hide();
-        
-        if (fallbackText) {
-          setTimeout(async () => {
-            try {
-              await invoke("type_text", { text: fallbackText });
-            } catch (err) {
-              console.error("Failed to type fallback text:", err);
-            }
-          }, 150);
-        }
+        await emit("approval-closed");
       });
       if (isMounted) unlisteners.push(unlistenCancelled);
 

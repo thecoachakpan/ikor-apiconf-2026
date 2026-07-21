@@ -1,10 +1,27 @@
 use crate::{get_clipboard, get_enigo};
 use enigo::{Direction, Key, Keyboard};
+use std::sync::Mutex;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use uiautomation::patterns::{UITextPattern, UIValuePattern};
 use uiautomation::types::ControlType;
 use uiautomation::UIAutomation;
+
+lazy_static::lazy_static! {
+    static ref LAST_CAPTURED_CONTEXT: Mutex<Option<(String, Instant)>> = Mutex::new(None);
+}
+
+/// Capture active context immediately on hotkey press while user's target app is focused
+pub fn capture_active_context_now() {
+    if let Ok(ctx) = raw_get_window_context_optimized(false) {
+        if !ctx.trim().is_empty() {
+            println!("[Scribe] Captured context on hotkey press: {} chars", ctx.len());
+            if let Ok(mut guard) = LAST_CAPTURED_CONTEXT.lock() {
+                *guard = Some((ctx, Instant::now()));
+            }
+        }
+    }
+}
 
 /// Helper to simulate copy shortcuts and safely grab selection from clipboard when UI Automation fails
 pub fn get_selection_via_clipboard() -> Option<String> {
@@ -313,6 +330,24 @@ pub fn get_window_context() -> Result<String, String> {
 
 /// Optimized get_window_context_optimized with app-awareness and token reduction rules
 pub fn get_window_context_optimized(needs_full_page: bool) -> Result<String, String> {
+    // 1. If context was freshly captured at hotkey press down (within last 6 sec), return it immediately!
+    if let Ok(guard) = LAST_CAPTURED_CONTEXT.lock() {
+        if let Some((ref text, timestamp)) = *guard {
+            if timestamp.elapsed() < Duration::from_secs(6) && !text.trim().is_empty() {
+                println!(
+                    "[Scribe] Using freshly captured hotkey-press context ({} chars)",
+                    text.len()
+                );
+                return Ok(text.clone());
+            }
+        }
+    }
+
+    // 2. Otherwise perform live capture
+    raw_get_window_context_optimized(needs_full_page)
+}
+
+pub fn raw_get_window_context_optimized(needs_full_page: bool) -> Result<String, String> {
     let automation = UIAutomation::new().map_err(|e| format!("UIAutomation init failed: {}", e))?;
     let element = automation
         .get_focused_element()

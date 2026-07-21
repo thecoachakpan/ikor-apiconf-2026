@@ -1143,6 +1143,9 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (offlineModeRef.current || !navigator.onLine) {
             console.log("▶ Offline mode: Starting local whisper-rs pipeline...");
             module = new QueuedLocal();
+          } else if (dictationSpeedRef.current === "ultra-fast" || dictationSpeedRef.current === "ultrafast") {
+            console.log("▶ Ultrafast mode: Starting Deepgram Nova-3 + Groq/Gemini LLM pipeline...");
+            module = new UltraFastStream();
           } else {
             console.log("▶ Fast mode: Starting secure native Rust pipeline...");
             module = new FastBatch();
@@ -1297,7 +1300,8 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          startRecording(null, true);
+          const ctx = await invoke<string>("get_window_context_optimized", { needsFullPage: false }).catch(() => null);
+          startRecording(ctx, true);
         } else if (id === "scribe") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1310,7 +1314,8 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          startRecording(windowContextRef.current, false);
+          const ctx = await invoke<string>("get_window_context_optimized", { needsFullPage: false }).catch(() => null);
+          startRecording(ctx || windowContextRef.current, false);
         } else if (id === "mcp") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1323,7 +1328,8 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          startRecording(null, true);
+          const ctx = await invoke<string>("get_window_context_optimized", { needsFullPage: false }).catch(() => null);
+          startRecording(ctx, true);
         } else if (id === "handsFree") {
           if (stopTimeoutRef.current) {
             console.log("Cancelling pending stop timeout due to hands-free activation");

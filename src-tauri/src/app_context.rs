@@ -114,23 +114,39 @@ pub struct AppInfoPayload {
 
 lazy_static::lazy_static! {
     static ref LAST_EMITTED_APP: Mutex<Option<AppInfoPayload>> = Mutex::new(None);
+    static ref LAST_NON_SAYIKOR_APP: Mutex<Option<(String, String, String)>> = Mutex::new(None);
 }
 
 pub fn get_foreground_app_info() -> Option<(String, String, String)> {
     unsafe {
         let hwnd = GetForegroundWindow();
         if hwnd == 0 {
+            if let Ok(guard) = LAST_NON_SAYIKOR_APP.lock() {
+                if let Some(ref last) = *guard {
+                    return Some(last.clone());
+                }
+            }
             return None;
         }
 
         let mut pid: u32 = 0;
         GetWindowThreadProcessId(hwnd, &mut pid);
         if pid == 0 {
+            if let Ok(guard) = LAST_NON_SAYIKOR_APP.lock() {
+                if let Some(ref last) = *guard {
+                    return Some(last.clone());
+                }
+            }
             return None;
         }
 
         let hprocess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
         if hprocess == 0 {
+            if let Ok(guard) = LAST_NON_SAYIKOR_APP.lock() {
+                if let Some(ref last) = *guard {
+                    return Some(last.clone());
+                }
+            }
             return None;
         }
 
@@ -140,6 +156,11 @@ pub fn get_foreground_app_info() -> Option<(String, String, String)> {
         CloseHandle(hprocess);
 
         if success == 0 {
+            if let Ok(guard) = LAST_NON_SAYIKOR_APP.lock() {
+                if let Some(ref last) = *guard {
+                    return Some(last.clone());
+                }
+            }
             return None;
         }
 
@@ -158,7 +179,36 @@ pub fn get_foreground_app_info() -> Option<(String, String, String)> {
             String::new()
         };
 
-        Some((exe_name, title, exe_path))
+        let exe_lower = exe_name.to_lowercase();
+        let title_lower = title.to_lowercase();
+        let is_overlay_window = title_lower.is_empty()
+            || title_lower == "bubble"
+            || title_lower == "approval"
+            || title_lower.contains("speech bubble");
+
+        if exe_lower == "sayikor.exe" || exe_lower == "sayikor-inference.exe" {
+            // Only fall back to LAST_NON_SAYIKOR_APP if the focused window is a floating overlay window (bubble/approval).
+            // If the user is intentionally using the main Sayikor Dashboard, return Sayikor as the active app.
+            if is_overlay_window {
+                if let Ok(guard) = LAST_NON_SAYIKOR_APP.lock() {
+                    if let Some(ref last) = *guard {
+                        return Some(last.clone());
+                    }
+                }
+            }
+            let info = (exe_name.clone(), title.clone(), exe_path.clone());
+            if let Ok(mut guard) = LAST_NON_SAYIKOR_APP.lock() {
+                *guard = Some(info.clone());
+            }
+            return Some(info);
+        }
+
+        let info = (exe_name, title, exe_path);
+        if let Ok(mut guard) = LAST_NON_SAYIKOR_APP.lock() {
+            *guard = Some(info.clone());
+        }
+
+        Some(info)
     }
 }
 

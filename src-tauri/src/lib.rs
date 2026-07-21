@@ -1279,6 +1279,46 @@ async fn fetch_groq_key(supabase_url: String, supabase_anon_key: String) -> Resu
     Err("No Groq API key found in Supabase".to_string())
 }
 
+#[tauri::command]
+async fn fetch_deepgram_key(supabase_url: String, supabase_anon_key: String) -> Result<String, String> {
+    if supabase_url.is_empty() || supabase_anon_key.is_empty() {
+        return Err("Supabase credentials not provided".to_string());
+    }
+
+    let client = reqwest::Client::new();
+    let url = format!("{}/rest/v1/app_settings?id=eq.1&select=*", supabase_url);
+    let res = client
+        .get(&url)
+        .header("apikey", &supabase_anon_key)
+        .header("Authorization", format!("Bearer {}", supabase_anon_key))
+        .send()
+        .await
+        .map_err(|e| format!("Network request failed: {}", e))?;
+
+    if !res.status().is_success() {
+        return Err(format!("Supabase returned error status: {}", res.status()));
+    }
+
+    #[derive(serde::Deserialize)]
+    struct AppSettings {
+        deepgram_key: Option<String>,
+    }
+
+    let settings: Vec<AppSettings> = res
+        .json()
+        .await
+        .map_err(|e| format!("JSON parsing failed: {}", e))?;
+
+    if let Some(setting) = settings.first() {
+        if let Some(key) = &setting.deepgram_key {
+            return Ok(key.clone());
+        }
+    }
+
+    Err("No Deepgram API key found in Supabase".to_string())
+}
+
+
 #[derive(serde::Serialize)]
 struct PipelineResult {
     text: String,
@@ -1561,6 +1601,7 @@ pub fn run() {
             get_window_context_optimized,
             set_approval_mode,
             fetch_groq_key,
+            fetch_deepgram_key,
             notify_shortcuts_changed,
             update_shortcuts,
             get_audio_devices,
@@ -1738,6 +1779,13 @@ pub fn run() {
                             if shortcut.id == "paste" {
                                 simulate_paste();
                             } else {
+                                if shortcut.id == "dictation"
+                                    || shortcut.id == "scribe"
+                                    || shortcut.id == "mcp"
+                                {
+                                    // Capture window context immediately while target app is active & focused
+                                    crate::scribe::capture_active_context_now();
+                                }
                                 let _ = app_handle.emit_to(
                                     "bubble",
                                     "shortcut-pressed",
