@@ -110,7 +110,7 @@ flowchart TD
 - **Human-in-the-Loop Approval:** No voice command can execute a payment or debit mandate automatically. Every parsed MCP tool call triggers a local popup requiring manual verification and click-to-approve.
 - **Active Window Context Isolation:** Win32 API window tracking and categorization happens purely locally on the Rust backend.
 - **Data Minimization:** Dictations, transcript histories, and API credentials are kept in sandboxed local storage (`StoreRef` / IndexedDB) and are never synced to the cloud without approval.
-- **Remote Kill Switch:** If Groq's APIs lag or experience cost spikes, backend configurations in Supabase can redirect traffic to alternative models (e.g., Gemini Flash) in real time without client builds.
+- **Remote Kill Switch:** If Deepgram or Groq APIs lag or experience cost spikes, backend configurations in Supabase can redirect traffic to alternative models (e.g., Gemini Flash, or local Whisper) in real time without client builds.
 - **Physical-to-Logical Scaling:** Windows DPI-scaling factors are calculated dynamically to position the window overlay relative to the usable `workArea` (ignoring taskbars) on 1080p, 4K, or multi-monitor environments.
 - **Z-Order Dominance:** The window pill re-asserts its `alwaysOnTop` status in a 5-second background loop to prevent other overlays from obscuring it.
 
