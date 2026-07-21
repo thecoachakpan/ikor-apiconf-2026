@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "WaitlistSubscriber": {
+      "title": "Waitlist Subscriber",
+      "description": "A lead who submitted their email on the landing page to request access.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The subscriber's email address."
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of submission."
+        },
+        "synced": {
+          "type": "boolean",
+          "description": "Whether this lead has been successfully pushed to Google Sheets."
+        }
+      },
+      "required": ["email", "submittedAt", "synced"]
+    },
+    "GoogleSheetsConfig": {
+      "title": "Google Sheets Configuration",
+      "description": "Persistent Google Sheets waitlist sync configuration.",
+      "type": "object",
+      "properties": {
+        "spreadsheetId": {
+          "type": "string",
+          "description": "The linked Google Spreadsheet ID."
+        },
+        "webAppUrl": {
+          "type": "string",
+          "description": "An optional Google Apps Script Web App URL for direct backend-free submission."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of configuration update."
+        }
+      }
+    },
+    "SalesInquiry": {
+      "title": "Sales Inquiry",
+      "description": "An inquiry submitted by a business lead requesting contact from sales.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The lead's work email address."
+        },
+        "seats": {
+          "type": "string",
+          "description": "Number of Enterprise seats required."
+        },
+        "role": {
+          "type": "string",
+          "description": "The requester's business role."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The name of the company."
+        },
+        "companyWebsite": {
+          "type": "string",
+          "description": "Company website URL."
+        },
+        "companySize": {
+          "type": "string",
+          "description": "Number of employees."
+        },
+        "team": {
+          "type": "string",
+          "description": "The department/team adopting the product."
+        },
+        "timeline": {
+          "type": "string",
+          "description": "The timeline for buying or exploring."
+        },
+        "specificQuestion": {
+          "type": "string",
+          "description": "Specific topics the lead wants to know about."
+        },
+        "comments": {
+          "type": "string",
+          "description": "Any custom comments or feedback."
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of submission."
+        }
+      },
+      "required": ["email", "seats", "role", "companyName", "companyWebsite", "companySize", "team", "timeline", "specificQuestion", "submittedAt"]
+    }
+  },
+  "firestore": {
+    "/waitlist/{subscriberId}": {
+      "schema": "WaitlistSubscriber",
+      "description": "Global collection of waitlist email leads."
+    },
+    "/settings/google_sheets": {
+      "schema": "GoogleSheetsConfig",
+      "description": "Shared waitlist configuration settings."
+    },
+    "/sales_inquiries/{inquiryId}": {
+      "schema": "SalesInquiry",
+      "description": "Global collection of business contact sales inquiries."
+    }
+  }
+}

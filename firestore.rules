@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email.matches('.*@sayikor\\.com$') ||
+        request.auth.token.email_verified == true
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidSubscriber(data) {
+      return data.keys().hasAll(['email', 'submittedAt', 'synced']) &&
+             data.keys().size() == 3 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.submittedAt is string && data.submittedAt.size() <= 64 &&
+             data.synced is bool;
+    }
+
+    function isValidSalesInquiry(data) {
+      return data.keys().hasAll(['email', 'seats', 'role', 'companyName', 'companyWebsite', 'companySize', 'team', 'timeline', 'specificQuestion', 'submittedAt']) &&
+             data.keys().size() >= 10 && data.keys().size() <= 11 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.seats is string && data.seats.size() <= 64 &&
+             data.role is string && data.role.size() <= 128 &&
+             data.companyName is string && data.companyName.size() <= 256 &&
+             data.companyWebsite is string && data.companyWebsite.size() <= 256 &&
+             data.companySize is string && data.companySize.size() <= 64 &&
+             data.team is string && data.team.size() <= 128 &&
+             data.timeline is string && data.timeline.size() <= 128 &&
+             data.specificQuestion is string && data.specificQuestion.size() <= 128 &&
+             data.submittedAt is string && data.submittedAt.size() <= 64 &&
+             (!data.keys().hasAny(['comments']) || (data.comments is string && data.comments.size() <= 2000));
+    }
+
+    // Waitlist collection rules
+    match /waitlist/{subscriberId} {
+      // Anyone can create a waitlist submission
+      allow create: if isValidSubscriber(request.resource.data);
+      
+      // Only admins can read, list, update, or delete submissions
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Sales inquiry collection rules
+    match /sales_inquiries/{inquiryId} {
+      // Anyone can submit a sales inquiry
+      allow create: if isValidSalesInquiry(request.resource.data);
+      
+      // Only admins can read, list, update, or delete inquiries
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Google Sheets configuration settings
+    match /settings/google_sheets {
+      // Anyone can read the spreadsheet config so the landing page knows where to push
+      allow read: if true;
+      
+      // Only admins can update the configuration
+      allow write: if isAdmin();
+    }
+  }
+}

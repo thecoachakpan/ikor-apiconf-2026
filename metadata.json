@@ -1,0 +1,8 @@
+{
+  "name": "Ikor",
+  "description": "Context-aware AI dictation app that works everywhere.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

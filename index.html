@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="U3JR9ZMbfRMUP5q9USzIcvealfpvlKcHvixD4-vQ86Q" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <title>AI Speech to Text Windows Dictation Software | Ikor</title>
+
+    <!-- Open Graph / Facebook Metadata -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sayikor.vercel.app/" />
+    <meta property="og:title" content="AI Speech to Text Windows Dictation Software | Ikor" />
+    <meta property="og:description" content="Context-aware AI dictation engine that helps you type faster with your local accent, tone, and intent." />
+    <meta property="og:image" content="https://sayikor.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://sayikor.vercel.app/" />
+    <meta name="twitter:title" content="AI Speech to Text Windows Dictation Software | Ikor" />
+    <meta name="twitter:description" content="Context-aware AI dictation engine that helps you type faster with your local accent, tone, and intent." />
+    <meta name="twitter:image" content="https://sayikor.vercel.app/og-image.png" />
+
+    <script>
+      // Automatically unregister any old service workers from previous deployments
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister().then(function(success) {
+              if (success) {
+                console.log('Unregistered old service worker');
+                window.location.reload();
+              }
+            });
+          }
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
