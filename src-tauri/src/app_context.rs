@@ -180,27 +180,14 @@ pub fn get_foreground_app_info() -> Option<(String, String, String)> {
         };
 
         let exe_lower = exe_name.to_lowercase();
-        let title_lower = title.to_lowercase();
-        let is_overlay_window = title_lower.is_empty()
-            || title_lower == "bubble"
-            || title_lower == "approval"
-            || title_lower.contains("speech bubble");
-
         if exe_lower == "sayikor.exe" || exe_lower == "sayikor-inference.exe" {
-            // Only fall back to LAST_NON_SAYIKOR_APP if the focused window is a floating overlay window (bubble/approval).
-            // If the user is intentionally using the main Sayikor Dashboard, return Sayikor as the active app.
-            if is_overlay_window {
-                if let Ok(guard) = LAST_NON_SAYIKOR_APP.lock() {
-                    if let Some(ref last) = *guard {
-                        return Some(last.clone());
-                    }
+            // Return the last known target application before Sayikor gained window focus
+            if let Ok(guard) = LAST_NON_SAYIKOR_APP.lock() {
+                if let Some(ref last) = *guard {
+                    return Some(last.clone());
                 }
             }
-            let info = (exe_name.clone(), title.clone(), exe_path.clone());
-            if let Ok(mut guard) = LAST_NON_SAYIKOR_APP.lock() {
-                *guard = Some(info.clone());
-            }
-            return Some(info);
+            return Some((exe_name, title, exe_path));
         }
 
         let info = (exe_name, title, exe_path);

@@ -1300,8 +1300,7 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          const ctx = await invoke<string>("get_window_context_optimized", { needsFullPage: false }).catch(() => null);
-          startRecording(ctx, true);
+          startRecording(null, true);
         } else if (id === "scribe") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1314,8 +1313,7 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          const ctx = await invoke<string>("get_window_context_optimized", { needsFullPage: false }).catch(() => null);
-          startRecording(ctx || windowContextRef.current, false);
+          startRecording(windowContextRef.current, false);
         } else if (id === "mcp") {
           if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
@@ -1328,8 +1326,7 @@ function App({ hasSession = false }: { hasSession?: boolean }) {
           if (!navigator.onLine && !offlineModeRef.current) {
             setShowOfflineAlert(true);
           }
-          const ctx = await invoke<string>("get_window_context_optimized", { needsFullPage: false }).catch(() => null);
-          startRecording(ctx, true);
+          startRecording(null, true);
         } else if (id === "handsFree") {
           if (stopTimeoutRef.current) {
             console.log("Cancelling pending stop timeout due to hands-free activation");
