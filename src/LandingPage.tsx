@@ -672,8 +672,8 @@ export default function LandingPage() {
             <div className="relative aspect-video w-full bg-black rounded-[32px] overflow-hidden shadow-2xl border border-black/5 bg-[#FAF8F5]/30">
               <iframe 
                 className="w-full h-full aspect-video"
-                src="https://www.youtube.com/embed/Vz5EIda3kss?autoplay=1&vq=hd1080" 
-                title="Ikor Demo June 2026" 
+                src="https://www.youtube.com/embed/jyvHhmKpZo4?autoplay=1&vq=hd1080" 
+                title="How Ikor Works with the Monnify MCP - July 2026" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
                 referrerPolicy="strict-origin-when-cross-origin" 
