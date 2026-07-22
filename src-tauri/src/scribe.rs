@@ -3,7 +3,7 @@ use enigo::{Direction, Key, Keyboard};
 use std::thread;
 use std::time::Duration;
 use uiautomation::patterns::{UITextPattern, UIValuePattern};
-use uiautomation::types::ControlType;
+use uiautomation::types::{ControlType, TextPatternRangeEndpoint};
 use uiautomation::UIAutomation;
 
 /// Helper to simulate copy shortcuts and safely grab selection from clipboard when UI Automation fails
@@ -153,162 +153,7 @@ fn clean_chat_context(text: &str) -> String {
 
 /// Original get_window_context function (remains fully backward-compatible)
 pub fn get_window_context() -> Result<String, String> {
-    let automation = UIAutomation::new().map_err(|e| format!("UIAutomation init failed: {}", e))?;
-    let element = automation
-        .get_focused_element()
-        .map_err(|e| format!("get_focused_element failed: {}", e))?;
-
-    let mut focused_context = String::new();
-    let mut has_highlighted_text = false;
-
-    // Try TextPattern first (rich text editors, browsers, documents)
-    if let Ok(text_pattern) = element.get_pattern::<UITextPattern>() {
-        // Check for highlighted/selected text first
-        if let Ok(selections) = text_pattern.get_selection() {
-            if !selections.is_empty() {
-                if let Ok(text) = selections[0].get_text(-1) {
-                    if !text.trim().is_empty() {
-                        println!(
-                            "Scribe: Got selected text via UITextPattern ({} chars)",
-                            text.len()
-                        );
-                        focused_context = format!("[HIGHLIGHTED TEXT]:\n{}\n\n", text);
-                        has_highlighted_text = true;
-                    }
-                }
-            }
-        }
-
-        // No selection — get full document text
-        if focused_context.is_empty() {
-            if let Ok(document_range) = text_pattern.get_document_range() {
-                if let Ok(text) = document_range.get_text(-1) {
-                    if !text.trim().is_empty() {
-                        println!(
-                            "Scribe: Got document text via UITextPattern ({} chars)",
-                            text.len()
-                        );
-                        focused_context = format!("[FOCUSED TEXT]:\n{}\n\n", text);
-                    }
-                }
-            }
-        }
-    }
-
-    // Try ValuePattern (simple input fields, text boxes)
-    if focused_context.is_empty() {
-        if let Ok(value_pattern) = element.get_pattern::<UIValuePattern>() {
-            if let Ok(val) = value_pattern.get_value() {
-                if !val.trim().is_empty() {
-                    println!("Scribe: Got value via UIValuePattern ({} chars)", val.len());
-                    focused_context = format!("[INPUT FIELD TEXT]:\n{}\n\n", val);
-                }
-            }
-        }
-    }
-
-    // Try reading the element name as last resort
-    if focused_context.is_empty() {
-        if let Ok(name) = element.get_name() {
-            if !name.trim().is_empty() {
-                println!(
-                    "Scribe: Got element name as fallback ({} chars)",
-                    name.len()
-                );
-                focused_context = format!("[FOCUSED ELEMENT NAME]:\n{}\n\n", name);
-            }
-        }
-    }
-
-    // ALWAYS walk up the tree to find context, using Ascending Container Strategy
-    let mut window_context_str = String::new();
-    let mut current = element.clone();
-
-    if let Ok(walker) = automation.get_control_view_walker() {
-        let mut app_title = String::new();
-        let mut extracted_text = String::new();
-        let mut text_found = false;
-
-        while let Ok(parent) = walker.get_parent(&current) {
-            if let Ok(control_type) = parent.get_control_type() {
-                // If we haven't found a solid block of text yet, try to extract from structural containers
-                if !text_found
-                    && (control_type == ControlType::Group
-                        || control_type == ControlType::ListItem
-                        || control_type == ControlType::Pane
-                        || control_type == ControlType::Document
-                        || control_type == ControlType::Window)
-                {
-                    if let Ok(text_pattern) = parent.get_pattern::<UITextPattern>() {
-                        if let Ok(document_range) = text_pattern.get_document_range() {
-                            if let Ok(text) = document_range.get_text(-1) {
-                                let trimmed = text.trim();
-                                if trimmed.len() > 50
-                                    || control_type == ControlType::Document
-                                    || control_type == ControlType::Window
-                                {
-                                    extracted_text = trimmed.to_string();
-                                    text_found = true;
-                                    println!("Scribe: Ascending Container extracted {} chars from type {:?}", extracted_text.len(), control_type);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Always try to grab the top-level window or document title for the APP header
-                if control_type == ControlType::Window || control_type == ControlType::Document {
-                    if let Ok(name) = parent.get_name() {
-                        if !name.trim().is_empty() && app_title.is_empty() {
-                            app_title = name.trim().to_string();
-                        }
-                    }
-                    if control_type == ControlType::Window {
-                        break; // Stop climbing once we hit the main window
-                    }
-                }
-            }
-            current = parent;
-        }
-
-        let header = if !app_title.is_empty() {
-            format!("[APP: {}]\n", app_title)
-        } else {
-            String::new()
-        };
-
-        if !extracted_text.is_empty() {
-            let limit = if has_highlighted_text { 500 } else { 1500 };
-
-            // Apply Strict Truncation cap to protect LLM tokens
-            if extracted_text.chars().count() > limit {
-                extracted_text = extracted_text.chars().take(limit).collect::<String>();
-                extracted_text.push_str("\n...[Context Truncated]");
-            }
-            window_context_str = format!("{}[WINDOW CONTEXT]:\n{}", header, extracted_text);
-        } else if !header.is_empty() {
-            // Even if no text, at least send the app name
-            window_context_str = format!(
-                "{}[WINDOW CONTEXT]:\n(No additional text extracted)",
-                header
-            );
-        }
-    }
-
-    let combined_context = format!("{}{}", focused_context, window_context_str)
-        .trim()
-        .to_string();
-
-    if combined_context.is_empty() {
-        Err("No text found via UIAutomation".to_string())
-    } else {
-        println!(
-            "Scribe: Sending {} highlighted/focused chars and {} context window chars to frontend",
-            focused_context.chars().count(),
-            window_context_str.chars().count()
-        );
-        Ok(combined_context)
-    }
+    raw_get_window_context_optimized(true)
 }
 
 /// Optimized get_window_context_optimized with app-awareness and token reduction rules
@@ -322,42 +167,100 @@ pub fn raw_get_window_context_optimized(needs_full_page: bool) -> Result<String,
         .get_focused_element()
         .map_err(|e| format!("get_focused_element failed: {}", e))?;
 
-    let mut focused_context = String::new();
-    let mut has_highlighted_text = false;
+    let mut highlighted_text: Option<String> = None;
+    let mut text_above_cursor: Option<String> = None;
+    let mut text_below_cursor: Option<String> = None;
+    let mut focused_doc_text: Option<String> = None;
+    let mut input_value: Option<String> = None;
+    let mut element_name: Option<String> = None;
 
-    // 1. Try UI Automation UITextPattern for selection first
+    // 1. Inspect focused element with UITextPattern
     if let Ok(text_pattern) = element.get_pattern::<UITextPattern>() {
-        if let Ok(selections) = text_pattern.get_selection() {
-            if !selections.is_empty() {
-                if let Ok(text) = selections[0].get_text(-1) {
-                    if !text.trim().is_empty() {
-                        println!(
-                            "Scribe (Optimized): Got selected text via UITextPattern ({} chars)",
-                            text.len()
-                        );
-                        focused_context = format!("[HIGHLIGHTED TEXT]:\n{}\n\n", text);
-                        has_highlighted_text = true;
+        let selections_res = text_pattern.get_selection();
+        let doc_range_res = text_pattern.get_document_range();
+
+        if let Ok(ref selections) = selections_res {
+            if let Some(sel_range) = selections.first() {
+                if let Ok(txt) = sel_range.get_text(-1) {
+                    if !txt.trim().is_empty() {
+                        highlighted_text = Some(txt.trim().to_string());
                     }
+                }
+
+                // If document range is available, extract surrounding text above and below cursor/selection
+                if let Ok(ref doc_range) = doc_range_res {
+                    let before_range = doc_range.clone();
+                    if before_range
+                        .move_endpoint_by_range(
+                            TextPatternRangeEndpoint::End,
+                            sel_range,
+                            TextPatternRangeEndpoint::Start,
+                        )
+                        .is_ok()
+                    {
+                        if let Ok(txt) = before_range.get_text(-1) {
+                            if !txt.trim().is_empty() {
+                                text_above_cursor = Some(txt.trim().to_string());
+                            }
+                        }
+                    }
+
+                    let after_range = doc_range.clone();
+                    if after_range
+                        .move_endpoint_by_range(
+                            TextPatternRangeEndpoint::Start,
+                            sel_range,
+                            TextPatternRangeEndpoint::End,
+                        )
+                        .is_ok()
+                    {
+                        if let Ok(txt) = after_range.get_text(-1) {
+                            if !txt.trim().is_empty() {
+                                text_below_cursor = Some(txt.trim().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Ok(ref doc_range) = doc_range_res {
+            if let Ok(txt) = doc_range.get_text(-1) {
+                if !txt.trim().is_empty() {
+                    focused_doc_text = Some(txt.trim().to_string());
                 }
             }
         }
     }
 
-    // 2. If no selection found via UI Automation, try Clipboard Fallback
-    if focused_context.is_empty() {
-        if let Some(text) = get_selection_via_clipboard() {
-            focused_context = format!("[HIGHLIGHTED TEXT]:\n{}\n\n", text);
-            has_highlighted_text = true;
+    // 2. Clipboard fallback for highlighted text if UIAutomation selection was empty
+    if highlighted_text.is_none() {
+        if let Some(clip_text) = get_selection_via_clipboard() {
+            highlighted_text = Some(clip_text.trim().to_string());
         }
     }
 
-    // 3. If we found highlighted/selected text, return it IMMEDIATELY without fetching background context!
-    // This saves massive token counts when the user is explicitly acting on highlighted text.
-    if has_highlighted_text {
-        return Ok(focused_context.trim().to_string());
+    // 3. Fallback to UIValuePattern for simple input boxes if no text pattern was found
+    if focused_doc_text.is_none() && highlighted_text.is_none() {
+        if let Ok(value_pattern) = element.get_pattern::<UIValuePattern>() {
+            if let Ok(val) = value_pattern.get_value() {
+                if !val.trim().is_empty() {
+                    input_value = Some(val.trim().to_string());
+                }
+            }
+        }
     }
 
-    // 4. Otherwise, determine the focused app context
+    // 4. Element name fallback
+    if focused_doc_text.is_none() && input_value.is_none() && highlighted_text.is_none() {
+        if let Ok(name) = element.get_name() {
+            if !name.trim().is_empty() {
+                element_name = Some(name.trim().to_string());
+            }
+        }
+    }
+
+    // 5. Determine application title and container text by ascending control tree
     let app_info = crate::app_context::get_foreground_app_info();
     let is_chat_or_email = if let Some((ref exe, ref title, _)) = app_info {
         let exe_lower = exe.to_lowercase();
@@ -375,16 +278,14 @@ pub fn raw_get_window_context_optimized(needs_full_page: bool) -> Result<String,
         false
     };
 
-    let mut extracted_text = String::new();
-    let mut text_found = false;
+    let mut container_text = String::new();
     let mut app_title = String::new();
-
-    // 5. Walk up the tree to find structural container text
     let mut current = element.clone();
+
     if let Ok(walker) = automation.get_control_view_walker() {
         while let Ok(parent) = walker.get_parent(&current) {
             if let Ok(control_type) = parent.get_control_type() {
-                if !text_found
+                if container_text.is_empty()
                     && (control_type == ControlType::Group
                         || control_type == ControlType::ListItem
                         || control_type == ControlType::Pane
@@ -399,9 +300,7 @@ pub fn raw_get_window_context_optimized(needs_full_page: bool) -> Result<String,
                                     || control_type == ControlType::Document
                                     || control_type == ControlType::Window
                                 {
-                                    extracted_text = trimmed.to_string();
-                                    text_found = true;
-                                    println!("Scribe (Optimized): Ascending Container extracted {} chars from type {:?}", extracted_text.len(), control_type);
+                                    container_text = trimmed.to_string();
                                 }
                             }
                         }
@@ -423,48 +322,109 @@ pub fn raw_get_window_context_optimized(needs_full_page: bool) -> Result<String,
         }
     }
 
-    // 6. Clean and format the container context
-    let mut window_context_str = String::new();
-    let header = if !app_title.is_empty() {
-        format!("[APP: {}]\n", app_title)
-    } else {
-        String::new()
-    };
-
-    if !extracted_text.is_empty() {
-        if is_chat_or_email {
-            // Chat/Email: Apply intelligent thread filtering
-            let cleaned = clean_chat_context(&extracted_text);
-            window_context_str = format!("{}[THREAD HISTORY]:\n{}", header, cleaned);
-        } else {
-            // Document/Notepad/Editor: Conditional truncation
-            let limit = if needs_full_page { 2500 } else { 1000 };
-            let text_len = extracted_text.chars().count();
-            if text_len > limit {
-                // Take the LAST characters (cursor context) instead of the beginning of the file
-                let skip_count = text_len - limit;
-                extracted_text = extracted_text.chars().skip(skip_count).collect::<String>();
-                extracted_text.insert_str(0, "[Context Truncated]...\n");
-            }
-            window_context_str = format!("{}[WINDOW CONTEXT]:\n{}", header, extracted_text);
+    if app_title.is_empty() {
+        if let Some((_, ref title, _)) = app_info {
+            app_title = title.clone();
         }
-    } else if !header.is_empty() {
-        window_context_str = format!(
-            "{}[WINDOW CONTEXT]:\n(No additional text extracted)",
-            header
-        );
     }
 
-    let combined_context = format!("{}{}", focused_context, window_context_str)
-        .trim()
-        .to_string();
-    if combined_context.is_empty() {
+    // 6. Build structured context blocks
+    let mut parts = Vec::new();
+
+    if !app_title.is_empty() {
+        parts.push(format!("[APP: {}]", app_title));
+    }
+
+    if let Some(ref hl) = highlighted_text {
+        parts.push(format!("[HIGHLIGHTED TEXT]:\n{}", hl));
+    }
+
+    if let Some(ref above) = text_above_cursor {
+        let trimmed = above.trim();
+        if !trimmed.is_empty() {
+            let limit = 1200;
+            let truncated = if trimmed.chars().count() > limit {
+                let skip = trimmed.chars().count() - limit;
+                format!("...[Context Truncated]\n{}", trimmed.chars().skip(skip).collect::<String>())
+            } else {
+                trimmed.to_string()
+            };
+            parts.push(format!("[SURROUNDING TEXT ABOVE CURSOR]:\n{}", truncated));
+        }
+    }
+
+    if let Some(ref below) = text_below_cursor {
+        let trimmed = below.trim();
+        if !trimmed.is_empty() {
+            let limit = 1200;
+            let truncated = if trimmed.chars().count() > limit {
+                format!("{}\n...[Context Truncated]", trimmed.chars().take(limit).collect::<String>())
+            } else {
+                trimmed.to_string()
+            };
+            parts.push(format!("[SURROUNDING TEXT BELOW CURSOR]:\n{}", truncated));
+        }
+    }
+
+    // If surrounding text wasn't split, fallback to focused document text / input value
+    if text_above_cursor.is_none() && text_below_cursor.is_none() {
+        if let Some(ref full_text) = focused_doc_text {
+            let trimmed = full_text.trim();
+            if !trimmed.is_empty() && highlighted_text.as_deref() != Some(trimmed) {
+                let limit = if needs_full_page { 3000 } else { 1500 };
+                let truncated = if trimmed.chars().count() > limit {
+                    let skip = trimmed.chars().count() - limit;
+                    format!("...[Context Truncated]\n{}", trimmed.chars().skip(skip).collect::<String>())
+                } else {
+                    trimmed.to_string()
+                };
+                parts.push(format!("[FOCUSED TEXT]:\n{}", truncated));
+            }
+        } else if let Some(ref val) = input_value {
+            let trimmed = val.trim();
+            if !trimmed.is_empty() && highlighted_text.as_deref() != Some(trimmed) {
+                parts.push(format!("[INPUT FIELD TEXT]:\n{}", trimmed));
+            }
+        } else if let Some(ref name) = element_name {
+            let trimmed = name.trim();
+            if !trimmed.is_empty() {
+                parts.push(format!("[FOCUSED ELEMENT NAME]:\n{}", trimmed));
+            }
+        }
+    }
+
+    // Background container context (if not redundant)
+    if !container_text.is_empty() {
+        let cleaned = if is_chat_or_email {
+            clean_chat_context(&container_text)
+        } else {
+            container_text
+        };
+        let trimmed = cleaned.trim();
+        if !trimmed.is_empty()
+            && focused_doc_text.as_deref() != Some(trimmed)
+            && highlighted_text.as_deref() != Some(trimmed)
+        {
+            let limit = if needs_full_page { 2000 } else { 1000 };
+            let truncated = if trimmed.chars().count() > limit {
+                format!("{}\n...[Context Truncated]", trimmed.chars().take(limit).collect::<String>())
+            } else {
+                trimmed.to_string()
+            };
+            let label = if is_chat_or_email { "THREAD HISTORY" } else { "WINDOW CONTEXT" };
+            parts.push(format!("[{}]:\n{}", label, truncated));
+        }
+    }
+
+    let combined = parts.join("\n\n").trim().to_string();
+
+    if combined.is_empty() {
         Err("No text found via UIAutomation".to_string())
     } else {
         println!(
-            "Scribe (Optimized): Sending context ({} chars) to pipeline",
-            combined_context.chars().count()
+            "Scribe (Optimized): Extracted rich context ({} chars) from focused app/window",
+            combined.chars().count()
         );
-        Ok(combined_context)
+        Ok(combined)
     }
 }

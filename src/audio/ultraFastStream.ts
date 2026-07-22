@@ -71,13 +71,13 @@ export class UltraFastStream {
       throw new Error("Unable to fetch Deepgram API key from Supabase.");
     }
 
-    // 2. Build Deepgram Nova-3 WebSocket URL
+    // 2. Build Deepgram Nova-3 WebSocket URL (Pure STT mode without auto-formatting/punctuation; Groq LLM handles polishing)
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-    let wsEndpoint = "wss://api.deepgram.com/v1/listen?model=nova-3&punctuate=true&smart_format=true&encoding=linear16&sample_rate=16000&channels=1";
+    let wsEndpoint = "wss://api.deepgram.com/v1/listen?model=nova-3&smart_format=false&encoding=linear16&sample_rate=16000&channels=1";
     if (timezone.includes("Europe") || timezone.includes("Africa") || timezone.includes("MiddleEast")) {
-      wsEndpoint = "wss://api.eu.deepgram.com/v1/listen?model=nova-3&punctuate=true&smart_format=true&encoding=linear16&sample_rate=16000&channels=1";
+      wsEndpoint = "wss://api.eu.deepgram.com/v1/listen?model=nova-3&smart_format=false&encoding=linear16&sample_rate=16000&channels=1";
     } else if (timezone.includes("Asia") || timezone.includes("Australia") || timezone.includes("Pacific")) {
-      wsEndpoint = "wss://api.ast.deepgram.com/v1/listen?model=nova-3&punctuate=true&smart_format=true&encoding=linear16&sample_rate=16000&channels=1";
+      wsEndpoint = "wss://api.ast.deepgram.com/v1/listen?model=nova-3&smart_format=false&encoding=linear16&sample_rate=16000&channels=1";
     }
 
     this.ws = new WebSocket(wsEndpoint, ["token", deepgramKey]);

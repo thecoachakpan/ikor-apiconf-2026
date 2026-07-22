@@ -3819,7 +3819,7 @@ dependencies = [
 
 [[package]]
 name = "sayikor"
-version = "0.1.0"
+version = "0.1.23"
 dependencies = [
  "arboard",
  "base64 0.22.1",

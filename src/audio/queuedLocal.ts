@@ -33,6 +33,14 @@ export class QueuedLocal {
     this.options = options;
     this.isRecording = true;
 
+    if (!this.windowContext && this.options?.contextAwareness !== false) {
+      try {
+        this.windowContext = await invoke<string>("get_window_context_optimized", { needsFullPage: false });
+      } catch (e) {
+        console.warn("QueuedLocal: Failed to fetch window context:", e);
+      }
+    }
+
     try {
       console.log("Queued mode: Initializing native Rust whisper stream...");
       await invoke("init_whisper_stream");
